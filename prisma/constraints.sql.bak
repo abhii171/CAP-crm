@@ -1,0 +1,216 @@
+-- Academy Manager - raw SQL migration for things Prisma cannot express.
+-- Usage:
+--   npx prisma migrate dev --create-only --name constraints
+--   paste this file into the generated migration.sql, then: npx prisma migrate dev
+--
+-- NOTE: the schema.prisma has no @map on fields, so columns are camelCase and must be
+-- double-quoted in SQL ("academyId"). If you prefer snake_case columns, add @map to every
+-- field first and rewrite the identifiers below.
+
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- ───────────── Soft-delete-aware uniqueness (partial unique indexes) ─────────────
+
+CREATE UNIQUE INDEX users_phone_uq    ON users ("academyId", "phoneNumber") WHERE "deletedAt" IS NULL;
+CREATE UNIQUE INDEX users_email_uq    ON users ("academyId", lower("email")) WHERE "email" IS NOT NULL AND "deletedAt" IS NULL;
+CREATE UNIQUE INDEX guardians_phone_uq ON guardians ("academyId", "phoneNumber") WHERE "deletedAt" IS NULL; -- siblings share ONE guardian row
+CREATE UNIQUE INDEX cadets_rollno_uq  ON cadets ("academyId", "rollNo") WHERE "deletedAt" IS NULL;
+CREATE UNIQUE INDEX cms_programs_slug_uq ON cms_programs ("academyId", "slug") WHERE "deletedAt" IS NULL;
+CREATE UNIQUE INDEX cms_articles_slug_uq ON cms_articles ("academyId", "slug") WHERE "deletedAt" IS NULL;
+
+-- One primary guardian per cadet
+CREATE UNIQUE INDEX cadet_guardians_one_primary ON cadet_guardians ("cadetId") WHERE "isPrimary";
+
+-- One live enrollment per (cadet, batch)
+CREATE UNIQUE INDEX enrollments_one_live ON batch_enrollments ("cadetId", "batchId")
+  WHERE "status" IN ('ACTIVE', 'PAUSED');
+
+-- One regular session per batch per day (make-up sessions and cancelled ones excluded)
+CREATE UNIQUE INDEX sessions_one_per_day ON sessions ("batchId", "sessionDate")
+  WHERE NOT "isMakeUp" AND "status" <> 'CANCELLED';
+
+-- Monthly fee generation is idempotent: INSERT ... ON CONFLICT DO NOTHING hits this index
+CREATE UNIQUE INDEX fee_charges_monthly_uq ON fee_charges ("cadetId", "batchId", "billingMonth")
+  WHERE "type" = 'MONTHLY_TUITION' AND "status" <> 'VOID';
+
+-- Payments
+CREATE UNIQUE INDEX payments_gateway_payment_uq ON payments ("gatewayPaymentId") WHERE "gatewayPaymentId" IS NOT NULL;
+CREATE UNIQUE INDEX payments_receipt_uq         ON payments ("academyId", "receiptNo") WHERE "receiptNo" IS NOT NULL;
+CREATE UNIQUE INDEX payments_idem_uq            ON payments ("academyId", "idempotencyKey") WHERE "idempotencyKey" IS NOT NULL;
+
+-- ───────────── Pitch double-booking prevention ─────────────
+-- A pitch cannot host two non-cancelled sessions with overlapping time ranges.
+-- If one physical pitch can host several batches at once (lanes), model each lane as its own pitch row.
+ALTER TABLE sessions ADD CONSTRAINT sessions_no_pitch_overlap
+  EXCLUDE USING gist ("pitchId" WITH =, tstzrange("startsAt", "endsAt") WITH &&)
+  WHERE ("pitchId" IS NOT NULL AND "status" <> 'CANCELLED');
+
+-- ───────────── CHECK constraints ─────────────
+
+ALTER TABLE sessions ADD CONSTRAINT sessions_time_order CHECK ("endsAt" > "startsAt");
+
+ALTER TABLE batches ADD CONSTRAINT batches_days_valid
+  CHECK ("scheduleDays" <@ ARRAY[1,2,3,4,5,6,7] AND cardinality("scheduleDays") > 0);
+ALTER TABLE batches ADD CONSTRAINT batches_capacity_pos CHECK ("capacityLimit" > 0);
+ALTER TABLE batches ADD CONSTRAINT batches_fee_nonneg   CHECK ("monthlyFeePaise" >= 0);
+ALTER TABLE batches ADD CONSTRAINT batches_time_format
+  CHECK ("startTime" ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' AND "endTime" ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$');
+
+ALTER TABLE pitch_observations ADD CONSTRAINT obs_rating_range CHECK ("rating" BETWEEN 1 AND 10);
+
+ALTER TABLE fee_charges ADD CONSTRAINT fee_gross_nonneg   CHECK ("grossPaise" >= 0);
+ALTER TABLE fee_charges ADD CONSTRAINT fee_discount_range CHECK ("discountPaise" BETWEEN 0 AND "grossPaise");
+ALTER TABLE fee_charges ADD CONSTRAINT fee_net_consistent CHECK ("netPaise" = "grossPaise" - "discountPaise");
+ALTER TABLE fee_charges ADD CONSTRAINT fee_month_is_first
+  CHECK ("billingMonth" IS NULL OR EXTRACT(DAY FROM "billingMonth") = 1);
+ALTER TABLE fee_charges ADD CONSTRAINT fee_tuition_has_keys
+  CHECK ("type" <> 'MONTHLY_TUITION' OR ("batchId" IS NOT NULL AND "billingMonth" IS NOT NULL));
+ALTER TABLE fee_charges ADD CONSTRAINT fee_grace_after_due
+  CHECK ("graceUntil" IS NULL OR "graceUntil" >= "dueDate");
+
+ALTER TABLE payments ADD CONSTRAINT pay_amount_pos CHECK ("amountPaise" > 0);
+ALTER TABLE payments ADD CONSTRAINT pay_refund_needs_original CHECK ("kind" = 'PAYMENT' OR "reversalOfId" IS NOT NULL);
+ALTER TABLE payments ADD CONSTRAINT pay_captured_needs_paidat CHECK ("status" <> 'CAPTURED' OR "paidAt" IS NOT NULL);
+-- Receipt is issued in the same transaction that captures the payment:
+ALTER TABLE payments ADD CONSTRAINT pay_captured_needs_receipt CHECK ("status" <> 'CAPTURED' OR "receiptNo" IS NOT NULL);
+ALTER TABLE payments ADD CONSTRAINT pay_reversal_fk FOREIGN KEY ("reversalOfId") REFERENCES payments (id);
+
+ALTER TABLE payment_allocations ADD CONSTRAINT alloc_amount_pos CHECK ("amountPaise" > 0);
+
+-- ───────────── Gapless receipt numbers (per academy, per financial year) ─────────────
+-- Call inside the payment-capture transaction. The row lock serialises concurrent callers;
+-- if the transaction rolls back, the increment rolls back too, so numbers stay gapless.
+CREATE OR REPLACE FUNCTION next_receipt_no(p_academy uuid, p_fy text) RETURNS text
+LANGUAGE sql AS $$
+  INSERT INTO receipt_sequences ("academyId", "financialYear", "lastNo")
+  VALUES (p_academy, p_fy, 1)
+  ON CONFLICT ("academyId", "financialYear")
+  DO UPDATE SET "lastNo" = receipt_sequences."lastNo" + 1
+  RETURNING 'FY' || p_fy || '/' || lpad("lastNo"::text, 6, '0');
+$$;
+
+-- Same pattern for cadet roll numbers, e.g. CA-2026-014
+CREATE OR REPLACE FUNCTION next_roll_no(p_academy uuid, p_year int) RETURNS text
+LANGUAGE sql AS $$
+  INSERT INTO roll_no_sequences ("academyId", "year", "lastNo")
+  VALUES (p_academy, p_year, 1)
+  ON CONFLICT ("academyId", "year")
+  DO UPDATE SET "lastNo" = roll_no_sequences."lastNo" + 1
+  RETURNING 'CA-' || p_year || '-' || lpad("lastNo"::text, 3, '0');
+$$;
+
+-- ───────────── Over-allocation guard ─────────────
+-- Allocations against a charge can never exceed its net amount (or go negative via refunds).
+CREATE OR REPLACE FUNCTION trg_check_allocation() RETURNS trigger
+LANGUAGE plpgsql AS $$
+DECLARE
+  v_net int;
+  v_alloc int;
+BEGIN
+  SELECT "netPaise" INTO v_net FROM fee_charges WHERE id = NEW."feeChargeId" FOR UPDATE;
+  SELECT COALESCE(SUM(CASE WHEN p."kind" = 'PAYMENT' THEN pa."amountPaise" ELSE -pa."amountPaise" END), 0)
+    INTO v_alloc
+    FROM payment_allocations pa
+    JOIN payments p ON p.id = pa."paymentId"
+   WHERE pa."feeChargeId" = NEW."feeChargeId" AND p."status" <> 'FAILED';
+  IF v_alloc > v_net OR v_alloc < 0 THEN
+    RAISE EXCEPTION 'allocation for fee charge % out of range (allocated %, net %)', NEW."feeChargeId", v_alloc, v_net;
+  END IF;
+  RETURN NULL;
+END $$;
+
+CREATE CONSTRAINT TRIGGER payment_allocations_guard
+  AFTER INSERT ON payment_allocations
+  DEFERRABLE INITIALLY IMMEDIATE
+  FOR EACH ROW EXECUTE FUNCTION trg_check_allocation();
+
+-- ───────────── Append-only tables ─────────────
+
+CREATE OR REPLACE FUNCTION trg_append_only() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION '% is append-only (% blocked)', TG_TABLE_NAME, TG_OP;
+END $$;
+
+CREATE TRIGGER audit_logs_append_only BEFORE UPDATE OR DELETE ON audit_logs
+  FOR EACH ROW EXECUTE FUNCTION trg_append_only();
+-- Consent history is legal evidence: withdrawal is a new row, not an edit.
+-- (A DPDP erasure job should anonymise personal fields and run under a privileged DB role.)
+CREATE TRIGGER consents_append_only BEFORE UPDATE OR DELETE ON consents
+  FOR EACH ROW EXECUTE FUNCTION trg_append_only();
+
+-- Payments: only workflow fields may change (status PENDING -> CAPTURED/FAILED, gateway ids,
+-- receipt, paidAt, pdf key). Money fields are frozen; rows can never be deleted.
+CREATE OR REPLACE FUNCTION trg_payments_guard() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'payments are append-only (DELETE blocked)';
+  END IF;
+  IF NEW."amountPaise" IS DISTINCT FROM OLD."amountPaise"
+     OR NEW."kind" IS DISTINCT FROM OLD."kind"
+     OR NEW."mode" IS DISTINCT FROM OLD."mode"
+     OR NEW."academyId" IS DISTINCT FROM OLD."academyId"
+     OR NEW."reversalOfId" IS DISTINCT FROM OLD."reversalOfId" THEN
+    RAISE EXCEPTION 'payment money fields are immutable; issue a REFUND/reversal row instead';
+  END IF;
+  IF OLD."status" IN ('CAPTURED', 'FAILED') AND NEW."status" IS DISTINCT FROM OLD."status" THEN
+    RAISE EXCEPTION 'payment status % is terminal', OLD."status";
+  END IF;
+  RETURN NEW;
+END $$;
+
+CREATE TRIGGER payments_guard BEFORE UPDATE OR DELETE ON payments
+  FOR EACH ROW EXECUTE FUNCTION trg_payments_guard();
+
+-- ───────────── Derived fee status (OVERDUE is never stored) ─────────────
+-- Today's date is evaluated in Asia/Kolkata so overdue flips at local midnight.
+
+CREATE OR REPLACE VIEW v_fee_charge_balance AS
+SELECT
+  fc.id,
+  fc."academyId",
+  fc."cadetId",
+  fc."batchId",
+  fc."type",
+  fc."billingMonth",
+  fc."netPaise",
+  fc."dueDate",
+  fc."graceUntil",
+  COALESCE(a.paid_paise, 0)                       AS paid_paise,
+  fc."netPaise" - COALESCE(a.paid_paise, 0)       AS balance_paise,
+  CASE
+    WHEN fc."status" = 'VOID'                                         THEN 'VOID'
+    WHEN fc."netPaise" - COALESCE(a.paid_paise, 0) <= 0               THEN 'PAID'
+    WHEN (now() AT TIME ZONE 'Asia/Kolkata')::date
+         > COALESCE(fc."graceUntil", fc."dueDate")                    THEN 'OVERDUE'
+    WHEN COALESCE(a.paid_paise, 0) > 0                                THEN 'PARTIAL'
+    ELSE 'PENDING'
+  END AS derived_status
+FROM fee_charges fc
+LEFT JOIN (
+  SELECT pa."feeChargeId",
+         SUM(CASE WHEN p."kind" = 'PAYMENT' THEN pa."amountPaise" ELSE -pa."amountPaise" END) AS paid_paise
+    FROM payment_allocations pa
+    JOIN payments p ON p.id = pa."paymentId"
+   WHERE p."status" = 'CAPTURED'
+   GROUP BY pa."feeChargeId"
+) a ON a."feeChargeId" = fc.id;
+
+-- ───────────── Performance indexes ─────────────
+
+-- Outbox relay polls this
+CREATE INDEX outbox_pending_idx ON outbox_events ("availableAt") WHERE "status" = 'PENDING';
+-- Reminder job: open charges by due date
+CREATE INDEX fee_charges_open_due_idx ON fee_charges ("dueDate") WHERE "status" = 'OPEN';
+-- Fuzzy cadet-name search for GET /students?q=
+CREATE INDEX cadets_name_trgm ON cadets USING gin (lower("firstName" || ' ' || "lastName") gin_trgm_ops)
+  WHERE "deletedAt" IS NULL;
+
+-- ───────────── Optional hardening: Row-Level Security for tenant isolation ─────────────
+-- Set per request:  SELECT set_config('app.academy_id', '<uuid>', true);
+-- ALTER TABLE cadets ENABLE ROW LEVEL SECURITY;
+-- CREATE POLICY tenant_isolation ON cadets
+--   USING ("academyId" = current_setting('app.academy_id')::uuid);
+-- (Repeat per tenant table; the app must connect as a non-owner role so RLS applies.)

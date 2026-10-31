@@ -1,0 +1,9 @@
+{
+  "name": "CPA Cricket Academy CRM",
+  "short_name": "CPA CRM",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F7F4",
+  "theme_color": "#16794C",
+  "icons": []
+}

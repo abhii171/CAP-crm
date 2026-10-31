@@ -1,0 +1,655 @@
+// CPA Cricket Academy CRM - Prisma schema (PostgreSQL)
+// Companion to DATABASE-DESIGN.md. Money is stored as integer paise (INR x 100).
+// Extra constraints that Prisma cannot express (CHECKs, partial indexes, triggers)
+// are listed in DATABASE-DESIGN.md section 6 and must go in a raw SQL migration.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------- enums
+
+enum Role {
+  ADMIN
+  MANAGER
+  COACH
+}
+
+enum BranchType {
+  OWNED
+  FRANCHISE
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ConsentStatus {
+  GRANTED
+  REVOKED
+}
+
+enum SessionStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum FeeFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+}
+
+enum DueStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  WAIVED
+}
+
+enum EntryType {
+  PAYMENT
+  REVERSAL
+}
+
+enum PaymentMethod {
+  CASH
+  ONLINE
+}
+
+enum LinkStatus {
+  CREATED
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
+enum GatewayEventStatus {
+  RECEIVED
+  APPLIED
+  UNMATCHED
+  IGNORED
+  FAILED
+}
+
+enum TemplateStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum MessageDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum MessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  SKIPPED
+  RECEIVED
+}
+
+enum InboxStatus {
+  UNREAD
+  IN_PROGRESS
+  RESOLVED
+}
+
+// ---------------------------------------------------------------- core
+
+model Branch {
+  id          String     @id @default(cuid())
+  code        String     @unique // short code used in student IDs and receipts, e.g. "KKP"
+  name        String
+  type        BranchType // drives permissions and fee rules; never branch names
+  address     String?
+  city        String?
+  studentSeq  Int        @default(0) // last used student sequence for this branch
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  users          User[]
+  guardians      Guardian[]
+  students       Student[]
+  batches        Batch[]
+  sessions       Session[]
+  feePlans       FeePlan[]
+  feeDues        FeeDue[]
+  payments       Payment[]
+  receipts       Receipt[]
+  receiptCounter ReceiptCounter?
+  dailyCloses    DailyClose[]
+  paymentLinks   PaymentLink[]
+  messages       Message[]
+  notices        Notice[]
+  auditLogs      AuditLog[]
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  loginId            String    @unique // system-issued ID
+  email              String?   @unique // required for admin (reset link + 2FA)
+  name               String
+  phone              String?
+  role               Role
+  branchId           String? // null only for ADMIN (enforced by CHECK)
+  passwordHash       String
+  mustChangePassword Boolean   @default(true)
+  isActive           Boolean   @default(true)
+  twoFactorEnabled   Boolean   @default(false)
+  twoFactorSecret    String? // store encrypted
+  failedLoginCount   Int       @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+  createdById        String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  branch       Branch?  @relation(fields: [branchId], references: [id])
+  createdBy    User?    @relation("UserCreatedBy", fields: [createdById], references: [id])
+  createdUsers User[]   @relation("UserCreatedBy")
+
+  authSessions        AuthSession[]
+  passwordResets      PasswordResetToken[]
+  batchAssignments    BatchCoach[]
+  attendanceMarked    Attendance[]    @relation("AttendanceMarkedBy")
+  paymentsCollected   Payment[]       @relation("PaymentCollectedBy")
+  paymentsApproved    Payment[]       @relation("PaymentApprovedBy")
+  dailyClosesDone     DailyClose[]
+  consentsRecorded    ConsentRecord[]
+  messagesSent        Message[]
+  noticesCreated      Notice[]
+  auditLogs           AuditLog[]
+
+  @@index([branchId, role])
+}
+
+model AuthSession {
+  id           String    @id @default(cuid())
+  userId       String
+  tokenHash    String    @unique
+  createdAt    DateTime  @default(now())
+  lastActiveAt DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  userAgent    String?
+  ip           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------- people
+
+model Guardian {
+  id             String   @id @default(cuid())
+  branchId       String
+  name           String
+  whatsappNumber String // E.164, e.g. +919876543210
+  altNumber      String?
+  relationship   String?
+  whatsappOptIn  Boolean  @default(false) // cached current state; history in ConsentRecord
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  branch   Branch          @relation(fields: [branchId], references: [id])
+  students Student[]
+  consents ConsentRecord[]
+  messages Message[]
+
+  @@unique([branchId, whatsappNumber])
+  @@index([branchId, name])
+}
+
+model ConsentRecord {
+  id           String        @id @default(cuid())
+  guardianId   String
+  channel      String        @default("WHATSAPP")
+  status       ConsentStatus
+  source       String? // "admission_form", "verbal", "stop_reply", ...
+  recordedById String? // null when set by the system (e.g. STOP reply)
+  recordedAt   DateTime      @default(now())
+
+  guardian   Guardian @relation(fields: [guardianId], references: [id])
+  recordedBy User?    @relation(fields: [recordedById], references: [id])
+
+  @@index([guardianId, recordedAt])
+}
+
+model Student {
+  id                 String        @id @default(cuid())
+  studentCode        String        @unique // e.g. KKP-000123, generated from Branch.studentSeq
+  branchId           String
+  guardianId         String
+  name               String
+  dob                DateTime      @db.Date
+  gender             String?
+  status             StudentStatus @default(ACTIVE)
+  joinedOn           DateTime      @db.Date
+  deactivatedAt      DateTime?
+  deactivationReason String?
+  emergencyName      String?
+  emergencyPhone     String?
+  notes              String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  branch       Branch           @relation(fields: [branchId], references: [id])
+  guardian     Guardian         @relation(fields: [guardianId], references: [id])
+  enrollments  Enrollment[]
+  attendances  Attendance[]
+  feePlans     StudentFeePlan[]
+  dues         FeeDue[]
+  payments     Payment[]
+  paymentLinks PaymentLink[]
+  messages     Message[]
+
+  @@index([branchId, status])
+  @@index([guardianId])
+  @@index([branchId, name])
+}
+
+// ---------------------------------------------------------------- batches
+
+model Batch {
+  id         String    @id @default(cuid())
+  branchId   String
+  name       String
+  ageGroup   String?
+  capacity   Int
+  daysOfWeek Int[] // 0 = Sunday ... 6 = Saturday
+  startTime  String // "HH:mm", branch local time
+  endTime    String
+  startsOn   DateTime? @db.Date
+  endsOn     DateTime? @db.Date
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  branch      Branch       @relation(fields: [branchId], references: [id])
+  coaches     BatchCoach[]
+  enrollments Enrollment[]
+  sessions    Session[]
+
+  @@unique([branchId, name])
+  @@index([branchId, isActive])
+}
+
+model BatchCoach {
+  id           String    @id @default(cuid())
+  batchId      String
+  coachId      String
+  isPrimary    Boolean   @default(true)
+  assignedFrom DateTime  @db.Date
+  assignedTo   DateTime? @db.Date
+
+  batch Batch @relation(fields: [batchId], references: [id])
+  coach User  @relation(fields: [coachId], references: [id])
+
+  @@index([coachId, assignedTo])
+  @@index([batchId, assignedTo])
+}
+
+model Enrollment {
+  id        String    @id @default(cuid())
+  studentId String
+  batchId   String
+  startDate DateTime  @db.Date
+  endDate   DateTime? @db.Date // null = current
+  createdAt DateTime  @default(now())
+
+  student Student @relation(fields: [studentId], references: [id])
+  batch   Batch   @relation(fields: [batchId], references: [id])
+
+  @@index([batchId, endDate])
+  @@index([studentId, endDate])
+}
+
+// ---------------------------------------------------------------- attendance
+
+model Session {
+  id                    String        @id @default(cuid())
+  batchId               String
+  branchId              String
+  date                  DateTime      @db.Date
+  status                SessionStatus @default(SCHEDULED)
+  cancelReason          String?
+  attendanceSubmittedAt DateTime?
+  createdAt             DateTime      @default(now())
+
+  batch       Batch        @relation(fields: [batchId], references: [id])
+  branch      Branch       @relation(fields: [branchId], references: [id])
+  attendances Attendance[]
+
+  @@unique([batchId, date])
+  @@index([branchId, date])
+}
+
+model Attendance {
+  id          String           @id @default(cuid())
+  sessionId   String
+  studentId   String
+  status      AttendanceStatus
+  markedById  String
+  markedAt    DateTime         @default(now())
+  isLateEntry Boolean          @default(false)
+  editedAt    DateTime? // edit history is in AuditLog
+
+  session  Session  @relation(fields: [sessionId], references: [id])
+  student  Student  @relation(fields: [studentId], references: [id])
+  markedBy User     @relation("AttendanceMarkedBy", fields: [markedById], references: [id])
+  messages Message[]
+
+  @@unique([sessionId, studentId])
+  @@index([studentId, markedAt])
+}
+
+// ---------------------------------------------------------------- fees
+
+model FeePlan {
+  id          String       @id @default(cuid())
+  branchId    String? // null = global plan
+  name        String
+  amountPaise Int
+  frequency   FeeFrequency
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  branch   Branch?          @relation(fields: [branchId], references: [id])
+  students StudentFeePlan[]
+  dues     FeeDue[]
+
+  @@index([branchId, isActive])
+}
+
+model StudentFeePlan {
+  id                  String    @id @default(cuid())
+  studentId           String
+  feePlanId           String
+  startDate           DateTime  @db.Date
+  endDate             DateTime? @db.Date
+  amountOverridePaise Int?
+  createdAt           DateTime  @default(now())
+
+  student Student  @relation(fields: [studentId], references: [id])
+  feePlan FeePlan  @relation(fields: [feePlanId], references: [id])
+  dues    FeeDue[]
+
+  @@index([studentId, endDate])
+}
+
+model FeeDue {
+  id                   String    @id @default(cuid())
+  branchId             String
+  studentId            String
+  feePlanId            String
+  studentFeePlanId     String?
+  label                String // e.g. "Nov 2026 monthly fee"
+  periodStart          DateTime  @db.Date
+  periodEnd            DateTime? @db.Date
+  dueDate              DateTime  @db.Date
+  amountPaise          Int
+  paidPaise            Int       @default(0) // cached sum of allocations
+  status               DueStatus @default(UNPAID)
+  remindersPausedUntil DateTime?
+  pauseReason          String?
+  waivedAt             DateTime?
+  waiveNote            String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  branch         Branch              @relation(fields: [branchId], references: [id])
+  student        Student             @relation(fields: [studentId], references: [id])
+  feePlan        FeePlan             @relation(fields: [feePlanId], references: [id])
+  studentFeePlan StudentFeePlan?     @relation(fields: [studentFeePlanId], references: [id])
+  allocations    PaymentAllocation[]
+
+  @@unique([studentFeePlanId, periodStart]) // prevents duplicate generation
+  @@index([branchId, status, dueDate])
+  @@index([studentId, status])
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  branchId         String
+  studentId        String
+  entryType        EntryType     @default(PAYMENT)
+  method           PaymentMethod
+  amountPaise      Int // always positive; REVERSAL entries subtract
+  businessDate     DateTime      @db.Date // the day this belongs to for daily close
+  receivedAt       DateTime      @default(now())
+  collectedById    String? // null for ONLINE
+  approvedById     String? // admin approval for reversals over the manager limit
+  gatewayPaymentId String?       @unique // idempotency for online payments
+  paymentLinkId    String?
+  reversalOfId     String?       @unique // set only on REVERSAL entries
+  reason           String? // required on REVERSAL
+  note             String?
+  createdAt        DateTime      @default(now())
+
+  branch      Branch              @relation(fields: [branchId], references: [id])
+  student     Student             @relation(fields: [studentId], references: [id])
+  collectedBy User?               @relation("PaymentCollectedBy", fields: [collectedById], references: [id])
+  approvedBy  User?               @relation("PaymentApprovedBy", fields: [approvedById], references: [id])
+  paymentLink PaymentLink?        @relation(fields: [paymentLinkId], references: [id])
+  reversalOf  Payment?            @relation("PaymentReversal", fields: [reversalOfId], references: [id])
+  reversal    Payment?            @relation("PaymentReversal")
+  allocations PaymentAllocation[]
+  receipt     Receipt?
+
+  @@index([branchId, businessDate])
+  @@index([studentId, receivedAt])
+}
+
+model PaymentAllocation {
+  id          String @id @default(cuid())
+  paymentId   String
+  dueId       String
+  amountPaise Int // negative on reversal allocations
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+  due     FeeDue  @relation(fields: [dueId], references: [id])
+
+  @@unique([paymentId, dueId])
+  @@index([dueId])
+}
+
+model ReceiptCounter {
+  branchId   String @id
+  lastNumber Int    @default(0) // incremented inside the payment transaction under a row lock
+
+  branch Branch @relation(fields: [branchId], references: [id])
+}
+
+model Receipt {
+  id        String   @id @default(cuid())
+  branchId  String
+  number    Int // sequential per branch, no gaps, never reused
+  paymentId String   @unique
+  issuedAt  DateTime @default(now())
+  pdfUrl    String?
+
+  branch  Branch  @relation(fields: [branchId], references: [id])
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@unique([branchId, number])
+}
+
+model DailyClose {
+  id                 String   @id @default(cuid())
+  branchId           String
+  businessDate       DateTime @db.Date
+  expectedCashPaise  Int
+  countedCashPaise   Int
+  discrepancyPaise   Int // counted - expected
+  onlinePaise        Int
+  receiptCount       Int
+  note               String?
+  closedAt           DateTime @default(now())
+  closedById         String
+
+  branch   Branch @relation(fields: [branchId], references: [id])
+  closedBy User   @relation(fields: [closedById], references: [id])
+
+  @@unique([branchId, businessDate])
+}
+
+model PaymentLink {
+  id            String     @id @default(cuid())
+  branchId      String
+  studentId     String
+  gateway       String // "razorpay"
+  gatewayLinkId String     @unique
+  shortUrl      String
+  amountPaise   Int
+  dueIds        String[] // dues this link is meant to settle
+  status        LinkStatus @default(CREATED)
+  expiresAt     DateTime?
+  createdAt     DateTime   @default(now())
+
+  branch   Branch    @relation(fields: [branchId], references: [id])
+  student  Student   @relation(fields: [studentId], references: [id])
+  payments Payment[]
+
+  @@index([studentId, status])
+}
+
+model GatewayEvent {
+  id               String             @id @default(cuid())
+  gateway          String
+  eventId          String // provider event ID, used for idempotency
+  type             String
+  gatewayPaymentId String?
+  payload          Json
+  status           GatewayEventStatus @default(RECEIVED)
+  paymentId        String? // set when applied
+  error            String?
+  receivedAt       DateTime           @default(now())
+  processedAt      DateTime?
+
+  @@unique([gateway, eventId])
+  @@index([status, receivedAt]) // drives the "unmatched payments" queue
+}
+
+// ---------------------------------------------------------------- WhatsApp
+
+model MessageTemplate {
+  id          String         @id @default(cuid())
+  name        String         @unique // Meta template name
+  language    String         @default("en")
+  category    String // UTILITY / MARKETING
+  bodyPreview String
+  metaStatus  TemplateStatus @default(DRAFT)
+  isActive    Boolean        @default(true)
+  updatedAt   DateTime       @updatedAt
+}
+
+model Notice {
+  id             String   @id @default(cuid())
+  branchId       String? // null = sent by admin to all branches
+  type           String // HOLIDAY, RAIN, SCHEDULE_CHANGE, GENERAL
+  templateName   String
+  scopeBatchIds  String[]
+  noticeDate     DateTime? @db.Date
+  createdById    String
+  createdAt      DateTime @default(now())
+
+  branch    Branch?   @relation(fields: [branchId], references: [id])
+  createdBy User      @relation(fields: [createdById], references: [id])
+  messages  Message[]
+}
+
+model Message {
+  id                String           @id @default(cuid())
+  branchId          String
+  guardianId        String?
+  studentId         String?
+  direction         MessageDirection
+  templateName      String? // outbound template, null for free-form
+  body              String?
+  status            MessageStatus    @default(QUEUED)
+  skipReason        String? // e.g. "no consent"
+  attempts          Int              @default(0)
+  nextAttemptAt     DateTime?
+  providerMessageId String?          @unique
+  error             String?
+  inboxStatus       InboxStatus? // inbound messages only
+  attendanceId      String? // links an absence alert to its attendance row
+  relatedType       String? // "FEE_DUE", "PAYMENT", ...
+  relatedId         String?
+  noticeId          String?
+  sentById          String? // null = system
+  createdAt         DateTime         @default(now())
+  sentAt            DateTime?
+
+  branch     Branch      @relation(fields: [branchId], references: [id])
+  guardian   Guardian?   @relation(fields: [guardianId], references: [id])
+  student    Student?    @relation(fields: [studentId], references: [id])
+  attendance Attendance? @relation(fields: [attendanceId], references: [id])
+  notice     Notice?     @relation(fields: [noticeId], references: [id])
+  sentBy     User?       @relation(fields: [sentById], references: [id])
+
+  @@index([branchId, direction, inboxStatus])
+  @@index([status, nextAttemptAt]) // send/retry worker
+  @@index([guardianId, createdAt])
+}
+
+// ---------------------------------------------------------------- audit
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  actorId    String? // null = system
+  branchId   String?
+  action     String // "payment.create", "attendance.edit", "user.reset_password", ...
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  reason     String?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  actor  User?   @relation(fields: [actorId], references: [id])
+  branch Branch? @relation(fields: [branchId], references: [id])
+
+  @@index([branchId, createdAt])
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+}

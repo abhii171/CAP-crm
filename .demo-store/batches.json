@@ -1,0 +1,109 @@
+[
+  {
+    "id": "batch-1",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "branchCode": "KKP",
+    "name": "Under-14 Morning",
+    "ageGroup": "U14",
+    "capacity": 20,
+    "enrolledCount": 6,
+    "daysOfWeek": [
+      1,
+      3,
+      5
+    ],
+    "startTime": "06:00",
+    "endTime": "08:00",
+    "isActive": true,
+    "currentCoach": {
+      "id": "usr-cch-1",
+      "name": "Arjun Sharma",
+      "loginId": "CCH-KKP-001",
+      "isPrimary": true
+    },
+    "assignedCoaches": [
+      {
+        "coachId": "usr-cch-1",
+        "name": "Arjun Sharma",
+        "isPrimary": true,
+        "assignedFrom": "2026-08-01"
+      },
+      {
+        "coachId": "usr-cch-1793419464975",
+        "name": "Coach Dynamic Test 1793419462675",
+        "isPrimary": false,
+        "assignedFrom": "2026-10-31"
+      }
+    ],
+    "createdAt": "2026-10-31T04:04:25.004Z"
+  },
+  {
+    "id": "batch-2",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "branchCode": "KKP",
+    "name": "Under-17 Evening",
+    "ageGroup": "U17",
+    "capacity": 15,
+    "enrolledCount": 4,
+    "daysOfWeek": [
+      2,
+      4,
+      6
+    ],
+    "startTime": "16:00",
+    "endTime": "18:00",
+    "isActive": true,
+    "currentCoach": {
+      "id": "usr-cch-2",
+      "name": "Vikram Patel",
+      "loginId": "CCH-KKP-002",
+      "isPrimary": true
+    },
+    "assignedCoaches": [
+      {
+        "coachId": "usr-cch-2",
+        "name": "Vikram Patel",
+        "isPrimary": true,
+        "assignedFrom": "2026-08-01"
+      }
+    ],
+    "createdAt": "2026-10-31T04:04:25.004Z"
+  },
+  {
+    "id": "batch-3",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "branchCode": "KKP",
+    "name": "Open Batch",
+    "ageGroup": "Open",
+    "capacity": 25,
+    "enrolledCount": 2,
+    "daysOfWeek": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "startTime": "07:00",
+    "endTime": "09:00",
+    "isActive": true,
+    "currentCoach": {
+      "id": "usr-cch-1",
+      "name": "Arjun Sharma",
+      "loginId": "CCH-KKP-001",
+      "isPrimary": true
+    },
+    "assignedCoaches": [
+      {
+        "coachId": "usr-cch-1",
+        "name": "Arjun Sharma",
+        "isPrimary": true,
+        "assignedFrom": "2026-08-01"
+      }
+    ],
+    "createdAt": "2026-10-31T04:04:25.004Z"
+  }
+]
