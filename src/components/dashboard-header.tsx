@@ -107,6 +107,7 @@ export function DashboardHeader({ user: propUser }: DashboardHeaderProps) {
             <a href="/admin/students" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">Students</a>
             <a href="/admin/fee-plans" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">Fee Plans</a>
             <a href="/admin/messages" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">WhatsApp</a>
+            <a href="/admin/reports" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">Reports</a>
             <a href="/admin/audit" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">Audit</a>
           </>
         )}

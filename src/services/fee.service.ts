@@ -147,30 +147,34 @@ export let demoFeeDues: FeeDueRecord[] = [
 export async function listFeePlans(caller: UserContext, branchId?: string): Promise<FeePlanRecord[]> {
   authorize(caller, 'fee:view')
 
-  try {
-    const plans = await prisma.feePlan.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { branchId: null },
-          ...(branchId ? [{ branchId }] : caller.branchId ? [{ branchId: caller.branchId }] : []),
-        ],
-      },
-      orderBy: { amountPaise: 'asc' },
-    })
+  if (isDbAvailable()) {
+    try {
+      const plans = await prisma.feePlan.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { branchId: null },
+            ...(branchId ? [{ branchId }] : caller.branchId ? [{ branchId: caller.branchId }] : []),
+          ],
+        },
+        orderBy: { amountPaise: 'asc' },
+      })
 
-    if (plans.length > 0) {
-      return plans.map((p) => ({
-        id: p.id,
-        branchId: p.branchId,
-        name: p.name,
-        amountPaise: p.amountPaise,
-        frequency: p.frequency as any,
-        isActive: p.isActive,
-        createdAt: p.createdAt.toISOString(),
-      }))
+      if (plans.length > 0) {
+        return plans.map((p) => ({
+          id: p.id,
+          branchId: p.branchId,
+          name: p.name,
+          amountPaise: p.amountPaise,
+          frequency: p.frequency as any,
+          isActive: p.isActive,
+          createdAt: p.createdAt.toISOString(),
+        }))
+      }
+    } catch {
+      markDbOffline()
     }
-  } catch {}
+  }
 
   return demoFeePlans.filter((p) => {
     if (!p.isActive) return false
@@ -487,21 +491,25 @@ export async function applyDuePayment(
   dueId: string,
   amountPaise: number
 ): Promise<{ paidPaise: number; status: DueStatus }> {
-  try {
-    const d = await prisma.feeDue.findUnique({ where: { id: dueId } })
-    if (d) {
-      const newPaid = d.paidPaise + amountPaise
-      const newStatus: DueStatus = newPaid >= d.amountPaise ? 'PAID' : 'PARTIAL'
-      await prisma.feeDue.update({
-        where: { id: dueId },
-        data: {
-          paidPaise: newPaid,
-          status: newStatus as any,
-        },
-      })
-      return { paidPaise: newPaid, status: newStatus }
+  if (isDbAvailable()) {
+    try {
+      const d = await prisma.feeDue.findUnique({ where: { id: dueId } })
+      if (d) {
+        const newPaid = d.paidPaise + amountPaise
+        const newStatus: DueStatus = newPaid >= d.amountPaise ? 'PAID' : 'PARTIAL'
+        await prisma.feeDue.update({
+          where: { id: dueId },
+          data: {
+            paidPaise: newPaid,
+            status: newStatus as any,
+          },
+        })
+        return { paidPaise: newPaid, status: newStatus }
+      }
+    } catch {
+      markDbOffline()
     }
-  } catch {}
+  }
 
   const due = demoFeeDues.find((d) => d.id === dueId)
   if (due) {
@@ -521,21 +529,25 @@ export async function revertDuePayment(
   dueId: string,
   amountPaise: number
 ): Promise<{ paidPaise: number; status: DueStatus }> {
-  try {
-    const d = await prisma.feeDue.findUnique({ where: { id: dueId } })
-    if (d) {
-      const newPaid = Math.max(0, d.paidPaise - amountPaise)
-      const newStatus: DueStatus = newPaid === 0 ? 'UNPAID' : newPaid < d.amountPaise ? 'PARTIAL' : 'PAID'
-      await prisma.feeDue.update({
-        where: { id: dueId },
-        data: {
-          paidPaise: newPaid,
-          status: newStatus as any,
-        },
-      })
-      return { paidPaise: newPaid, status: newStatus }
+  if (isDbAvailable()) {
+    try {
+      const d = await prisma.feeDue.findUnique({ where: { id: dueId } })
+      if (d) {
+        const newPaid = Math.max(0, d.paidPaise - amountPaise)
+        const newStatus: DueStatus = newPaid === 0 ? 'UNPAID' : newPaid < d.amountPaise ? 'PARTIAL' : 'PAID'
+        await prisma.feeDue.update({
+          where: { id: dueId },
+          data: {
+            paidPaise: newPaid,
+            status: newStatus as any,
+          },
+        })
+        return { paidPaise: newPaid, status: newStatus }
+      }
+    } catch {
+      markDbOffline()
     }
-  } catch {}
+  }
 
   const due = demoFeeDues.find((d) => d.id === dueId)
   if (due) {

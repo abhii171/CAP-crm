@@ -531,19 +531,23 @@ export async function getStudentById(caller: UserContext, studentId: string) {
 export async function getStudentContactForAlert(
   studentId: string
 ): Promise<{ name: string; guardianId?: string; whatsappNumber?: string } | null> {
-  try {
-    const s = await prisma.student.findUnique({
-      where: { id: studentId },
-      include: { guardian: true },
-    })
-    if (s && s.guardian) {
-      return {
-        name: s.name,
-        guardianId: s.guardian.id,
-        whatsappNumber: s.guardian.whatsappNumber,
+  if (isDbAvailable()) {
+    try {
+      const s = await prisma.student.findUnique({
+        where: { id: studentId },
+        include: { guardian: true },
+      })
+      if (s && s.guardian) {
+        return {
+          name: s.name,
+          guardianId: s.guardian.id,
+          whatsappNumber: s.guardian.whatsappNumber,
+        }
       }
+    } catch {
+      markDbOffline()
     }
-  } catch {}
+  }
 
   const match = demoStudents.find((s) => s.id === studentId)
   if (match) {
