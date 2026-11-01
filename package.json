@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "test": "tsx tests/rbac.test.ts && tsx tests/audit.test.ts && tsx tests/users-and-branches.test.ts && tsx tests/batches.test.ts && tsx tests/students.test.ts && tsx tests/whatsapp.test.ts && tsx tests/attendance.test.ts && tsx tests/fees.test.ts && tsx tests/payments-and-close.test.ts && tsx tests/reversals.test.ts && tsx tests/online-payments.test.ts && tsx tests/fee-reminders.test.ts && tsx tests/notices-and-inbox.test.ts && tsx tests/reports.test.ts && tsx tests/pilot-launch-sweep.test.ts",
+    "test": "tsx tests/rbac.test.ts && tsx tests/audit.test.ts && tsx tests/users-and-branches.test.ts && tsx tests/batches.test.ts && tsx tests/students.test.ts && tsx tests/whatsapp.test.ts && tsx tests/attendance.test.ts && tsx tests/fees.test.ts && tsx tests/payments-and-close.test.ts && tsx tests/reversals.test.ts && tsx tests/online-payments.test.ts && tsx tests/fee-reminders.test.ts && tsx tests/notices-and-inbox.test.ts && tsx tests/reports.test.ts && tsx tests/pilot-launch-sweep.test.ts && tsx tests/load-and-concurrency.test.ts",
+    "test:load": "tsx tests/load-and-concurrency.test.ts",
     "type-check": "tsc --noEmit"
   },
   "pnpm": {

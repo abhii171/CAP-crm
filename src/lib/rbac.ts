@@ -66,6 +66,9 @@ export type Action =
   | 'report:view'
   | 'report:export'
 
+  // System & Backups (Step 1.17)
+  | 'backup:manage'
+
 export class SecurityError extends Error {
   public statusCode: number
   constructor(message: string, statusCode = 403) {

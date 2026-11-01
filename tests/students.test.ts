@@ -48,6 +48,8 @@ const coachUser: UserContext = {
 }
 
 async function runTests() {
+  const testPhone = '+9199' + Math.floor(10000000 + Math.random() * 90000000)
+
   // Test 1: Admit new student creates sequential studentCode
   const newStudent = await admitStudent(ownedManager, {
     branchId: 'branch-kkp',
@@ -55,7 +57,7 @@ async function runTests() {
     dob: '2013-05-10',
     gender: 'Male',
     guardianName: 'Venkatesh Rao',
-    whatsappNumber: '+919988776655',
+    whatsappNumber: testPhone,
     whatsappOptIn: true,
     batchId: 'batch-1',
   })
@@ -70,7 +72,7 @@ async function runTests() {
   const dupCheck1 = await checkDuplicateStudent(ownedManager, {
     branchId: 'branch-kkp',
     name: 'Siddharth Rao',
-    whatsappNumber: '+919988776655',
+    whatsappNumber: testPhone,
   })
   assert(
     dupCheck1.hasDuplicate === true && dupCheck1.duplicate?.studentCode === newStudent.studentCode,
@@ -84,13 +86,13 @@ async function runTests() {
     dob: '2016-08-20',
     gender: 'Female',
     guardianName: 'Venkatesh Rao',
-    whatsappNumber: '+919988776655',
+    whatsappNumber: testPhone,
     whatsappOptIn: true,
     batchId: 'batch-1',
   })
   assert(
     siblingStudent.name === 'Aanya Rao' &&
-      siblingStudent.guardianPhone === '+919988776655' &&
+      siblingStudent.guardianPhone === testPhone &&
       siblingStudent.studentCode !== newStudent.studentCode,
     'Sibling admission reuses guardian phone and generates distinct studentCode'
   )

@@ -36,7 +36,19 @@
         "assignedFrom": "2026-10-31"
       }
     ],
-    "createdAt": "2026-10-31T04:04:25.004Z"
+    "createdAt": "2026-10-31T04:04:25.004Z",
+    "coachingStaff": [
+      {
+        "id": "usr-cch-1",
+        "name": "Arjun Sharma",
+        "isPrimary": true
+      },
+      {
+        "id": "usr-cch-1793419464975",
+        "name": "Coach Dynamic Test 1793419462675",
+        "isPrimary": false
+      }
+    ]
   },
   {
     "id": "batch-2",
@@ -69,7 +81,14 @@
         "assignedFrom": "2026-08-01"
       }
     ],
-    "createdAt": "2026-10-31T04:04:25.004Z"
+    "createdAt": "2026-10-31T04:04:25.004Z",
+    "coachingStaff": [
+      {
+        "id": "usr-cch-2",
+        "name": "Vikram Patel",
+        "isPrimary": true
+      }
+    ]
   },
   {
     "id": "batch-3",
@@ -104,6 +123,163 @@
         "assignedFrom": "2026-08-01"
       }
     ],
-    "createdAt": "2026-10-31T04:04:25.004Z"
+    "createdAt": "2026-10-31T04:04:25.004Z",
+    "coachingStaff": [
+      {
+        "id": "usr-cch-1",
+        "name": "Arjun Sharma",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "id": "batch-1793471192256",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "branchCode": "KKP",
+    "name": "Under-12 Weekend Clinic",
+    "ageGroup": "U12",
+    "capacity": 18,
+    "enrolledCount": 0,
+    "daysOfWeek": [
+      0,
+      6
+    ],
+    "startTime": "08:00",
+    "endTime": "10:00",
+    "isActive": false,
+    "currentCoach": {
+      "id": "usr-cch-1",
+      "name": "Arjun Sharma",
+      "loginId": "CCH-KKP-001",
+      "isPrimary": true
+    },
+    "createdAt": "2026-10-31T18:26:32.256Z",
+    "assignedCoaches": [
+      {
+        "coachId": "usr-cch-2",
+        "name": "Vikram Patel",
+        "isPrimary": false,
+        "assignedFrom": "2026-10-31"
+      },
+      {
+        "coachId": "usr-cch-1",
+        "name": "Arjun Sharma",
+        "isPrimary": true,
+        "assignedFrom": "2026-10-31"
+      }
+    ],
+    "coachingStaff": [
+      {
+        "id": "usr-cch-2",
+        "name": "Vikram Patel",
+        "isPrimary": false
+      },
+      {
+        "id": "usr-cch-1",
+        "name": "Arjun Sharma",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "id": "batch-1793518898572",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "branchCode": "KKP",
+    "name": "Under-12 Weekend Clinic",
+    "ageGroup": "U12",
+    "capacity": 18,
+    "enrolledCount": 0,
+    "daysOfWeek": [
+      0,
+      6
+    ],
+    "startTime": "08:00",
+    "endTime": "10:00",
+    "isActive": false,
+    "currentCoach": {
+      "id": "usr-cch-1",
+      "name": "Arjun Sharma",
+      "loginId": "CCH-KKP-001",
+      "isPrimary": true
+    },
+    "createdAt": "2026-11-01T07:41:38.572Z",
+    "assignedCoaches": [
+      {
+        "coachId": "usr-cch-2",
+        "name": "Vikram Patel",
+        "isPrimary": false,
+        "assignedFrom": "2026-11-01"
+      },
+      {
+        "coachId": "usr-cch-1",
+        "name": "Arjun Sharma",
+        "isPrimary": true,
+        "assignedFrom": "2026-11-01"
+      }
+    ],
+    "coachingStaff": [
+      {
+        "id": "usr-cch-2",
+        "name": "Vikram Patel",
+        "isPrimary": false
+      },
+      {
+        "id": "usr-cch-1",
+        "name": "Arjun Sharma",
+        "isPrimary": true
+      }
+    ]
+  },
+  {
+    "id": "batch-1793518996978",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "branchCode": "KKP",
+    "name": "Under-12 Weekend Clinic",
+    "ageGroup": "U12",
+    "capacity": 18,
+    "enrolledCount": 0,
+    "daysOfWeek": [
+      0,
+      6
+    ],
+    "startTime": "08:00",
+    "endTime": "10:00",
+    "isActive": false,
+    "currentCoach": {
+      "id": "usr-cch-1",
+      "name": "Arjun Sharma",
+      "loginId": "CCH-KKP-001",
+      "isPrimary": true
+    },
+    "createdAt": "2026-11-01T07:43:16.978Z",
+    "assignedCoaches": [
+      {
+        "coachId": "usr-cch-2",
+        "name": "Vikram Patel",
+        "isPrimary": false,
+        "assignedFrom": "2026-11-01"
+      },
+      {
+        "coachId": "usr-cch-1",
+        "name": "Arjun Sharma",
+        "isPrimary": true,
+        "assignedFrom": "2026-11-01"
+      }
+    ],
+    "coachingStaff": [
+      {
+        "id": "usr-cch-2",
+        "name": "Vikram Patel",
+        "isPrimary": false
+      },
+      {
+        "id": "usr-cch-1",
+        "name": "Arjun Sharma",
+        "isPrimary": true
+      }
+    ]
   }
 ]

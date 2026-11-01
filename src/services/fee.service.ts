@@ -219,18 +219,22 @@ export async function createFeePlan(
     createdAt: new Date().toISOString(),
   }
 
-  try {
-    await prisma.feePlan.create({
-      data: {
-        id: newPlan.id,
-        branchId: newPlan.branchId,
-        name: newPlan.name,
-        amountPaise: newPlan.amountPaise,
-        frequency: newPlan.frequency as any,
-        isActive: true,
-      },
-    })
-  } catch {}
+  if (isDbAvailable()) {
+    try {
+      await prisma.feePlan.create({
+        data: {
+          id: newPlan.id,
+          branchId: newPlan.branchId,
+          name: newPlan.name,
+          amountPaise: newPlan.amountPaise,
+          frequency: newPlan.frequency as any,
+          isActive: true,
+        },
+      })
+    } catch {
+      markDbOffline()
+    }
+  }
 
   demoFeePlans.push(newPlan)
 

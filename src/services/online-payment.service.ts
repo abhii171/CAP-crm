@@ -200,6 +200,8 @@ export async function processOnlinePaymentWebhook(input: {
       message: `Gateway payment ${gatewayPaymentId} has already been processed (Idempotent).`,
     }
   }
+  // Synchronously reserve gatewayPaymentId before any async calls to prevent concurrent duplicate race conditions
+  demoProcessedGatewayPaymentIds.add(gatewayPaymentId)
 
   if (amountPaise <= 0) {
     return { success: false, status: 'SKIPPED', message: 'Payment amount must be greater than zero.' }

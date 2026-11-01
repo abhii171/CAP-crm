@@ -2,7 +2,29 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Building2, Plus, Users, MapPin, CheckCircle, AlertCircle, X, Shield, Loader2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  Building2,
+  Plus,
+  Users,
+  MapPin,
+  CheckCircle,
+  AlertCircle,
+  X,
+  Shield,
+  Loader2,
+  IndianRupee,
+  Clock,
+  TrendingUp,
+  UserCheck,
+  Calendar,
+  Layers,
+  ArrowUpRight,
+  ExternalLink,
+  BarChart3,
+  Percent,
+} from 'lucide-react'
+import { formatPaise } from '@/lib/utils'
 
 interface Branch {
   id: string
@@ -18,6 +40,12 @@ interface Branch {
   coachCount?: number
   studentCount?: number
   batchCount?: number
+  totalAdmissions?: number
+  totalCollectedPaise?: number
+  admissionFeeCollectedPaise?: number
+  monthlyFeeCollectedPaise?: number
+  outstandingPaise?: number
+  collectionRate?: number
 }
 
 export default function AdminBranchesPage() {
@@ -26,6 +54,9 @@ export default function AdminBranchesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+
+  // Selected branch for the dedicated Performance Overview Modal
+  const [overviewBranch, setOverviewBranch] = useState<Branch | null>(null)
 
   // Form State
   const [code, setCode] = useState('')
@@ -97,21 +128,22 @@ export default function AdminBranchesPage() {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       {/* Top Header */}
-      <header className="sticky top-0 z-30 w-full bg-[var(--surface)] border-b border-[var(--border)] px-4 sm:px-6 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-30 w-full bg-[var(--surface)] border-b border-[var(--border)] px-4 sm:px-6 py-3 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
           <Link
             href="/admin"
             className="w-8 h-8 rounded-md border border-[var(--border)] hover:bg-[var(--surface-2)] flex items-center justify-center text-[var(--text)] transition-colors"
-            title="Back to Admin Overview"
+            title="Back to Admin Dashboard"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
-            <h1 className="font-bold text-base text-[var(--text)] tracking-tight">
-              Branch Administration
+            <h1 className="font-bold text-base text-[var(--text)] tracking-tight flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-[var(--primary-600)]" />
+              <span>Branch Administration</span>
             </h1>
             <p className="text-xs text-[var(--text-muted)]">
-              Manage owned academy facilities and franchise branches.
+              Manage owned academy facilities, franchise branches, and review operational performance.
             </p>
           </div>
         </div>
@@ -131,10 +163,14 @@ export default function AdminBranchesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {branches.map((b) => {
             const isOwned = b.type === 'OWNED'
+            const bAdmissions = b.totalAdmissions ?? b.studentSeq ?? b.studentCount ?? 0
+            const bCollected = b.totalCollectedPaise ?? 0
+            const bPending = b.outstandingPaise ?? 0
+
             return (
               <div
                 key={b.id}
-                className="p-5 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-4 flex flex-col justify-between"
+                className="p-5 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-4 flex flex-col justify-between hover:border-[var(--primary-600)]/60 transition-all"
               >
                 <div>
                   <div className="flex items-start justify-between">
@@ -156,11 +192,12 @@ export default function AdminBranchesPage() {
                     </span>
                   </div>
 
-                  <div className="mt-3 space-y-1.5 text-xs text-[var(--text-muted)]">
+                  <div className="mt-3 space-y-2 text-xs text-[var(--text-muted)]">
                     <div className="flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-[var(--primary-600)] shrink-0" />
                       <span className="truncate">{b.address || b.city || 'No address registered'}</span>
                     </div>
+
                     <div className="flex items-center justify-between text-xs pt-1">
                       <span className="flex items-center gap-1.5 text-[var(--text)] font-semibold">
                         <Users className="w-3.5 h-3.5 text-[var(--primary-600)] shrink-0" />
@@ -173,18 +210,32 @@ export default function AdminBranchesPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs">
+                {/* Bottom Action Strip: Operational status on left, Overview + Staff on right */}
+                <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs gap-2">
                   <span className="flex items-center gap-1.5 text-[var(--success)] font-medium">
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    Operational
+                    <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Operational</span>
                   </span>
-                  <Link
-                    href={{ pathname: '/admin/users', query: { branchId: b.id } }}
-                    className="font-semibold text-[var(--primary-600)] hover:underline flex items-center gap-1"
-                  >
-                    <span>Staff ({b.staffCount ?? 0})</span>
-                    <span>→</span>
-                  </Link>
+
+                  <div className="flex items-center gap-2">
+                    {/* OVERVIEW OPTION BUTTON */}
+                    <button
+                      onClick={() => setOverviewBranch(b)}
+                      className="px-2.5 py-1 rounded-md bg-[var(--primary-50)] text-[var(--primary-700)] dark:bg-[var(--primary-900)]/40 dark:text-[var(--primary-300)] font-semibold border border-[var(--primary-600)]/30 hover:bg-[var(--primary-600)] hover:text-white transition-all flex items-center gap-1 cursor-pointer"
+                      title={`View Performance Overview for ${b.name}`}
+                    >
+                      <BarChart3 className="w-3.5 h-3.5" />
+                      <span>Overview</span>
+                    </button>
+
+                    <Link
+                      href={{ pathname: '/admin/users', query: { branchId: b.id } }}
+                      className="font-semibold text-[var(--primary-600)] hover:underline flex items-center gap-1"
+                    >
+                      <span>Staff ({b.staffCount ?? 0})</span>
+                      <span>→</span>
+                    </Link>
+                  </div>
                 </div>
               </div>
             )
@@ -192,7 +243,209 @@ export default function AdminBranchesPage() {
         </div>
       </main>
 
-      {/* New Branch Modal */}
+      {/* ======================================================== */}
+      {/* BRANCH PERFORMANCE OVERVIEW MODAL                        */}
+      {/* ======================================================== */}
+      {overviewBranch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="w-full max-w-2xl bg-[var(--surface)] rounded-[var(--radius-md)] border border-[var(--border)] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-[var(--border)]">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-muted)]">
+                    {overviewBranch.code}
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+                      overviewBranch.type === 'OWNED'
+                        ? 'bg-[var(--primary-50)] text-[var(--primary-700)] border-[var(--primary-600)]/30'
+                        : 'bg-[var(--accent-50)] text-[var(--warning)] border-[var(--warning)]/30'
+                    }`}
+                  >
+                    {overviewBranch.type} FACILITY
+                  </span>
+                </div>
+                <h2 className="text-lg font-bold text-[var(--text)] mt-1.5 flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-[var(--primary-600)]" />
+                  <span>{overviewBranch.name}</span>
+                </h2>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+                  <span>{overviewBranch.address || overviewBranch.city || 'No street address specified'}</span>
+                </p>
+              </div>
+
+              <button
+                onClick={() => setOverviewBranch(null)}
+                className="w-8 h-8 rounded-md border border-[var(--border)] hover:bg-[var(--surface-2)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                title="Close Overview"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Performance KPI Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              {/* 1. Total Admissions */}
+              <div className="p-4 rounded-[var(--radius-md)] bg-[var(--surface-2)] border border-[var(--border)] space-y-1.5">
+                <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+                  <span className="font-semibold uppercase tracking-wider text-[10px]">Total Admissions</span>
+                  <Users className="w-4 h-4 text-[var(--primary-600)]" />
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-black text-[var(--text)] tracking-tight">
+                    {overviewBranch.totalAdmissions ?? overviewBranch.studentSeq ?? overviewBranch.studentCount ?? 0}
+                  </span>
+                  <span className="text-xs text-[var(--text-muted)]">Cadets</span>
+                </div>
+                <div className="pt-2 border-t border-[var(--border)]/70 flex items-center justify-between text-[11px]">
+                  <span className="text-[var(--text-muted)]">Active Enrolled</span>
+                  <span className="font-bold text-[var(--success)]">
+                    {overviewBranch.studentCount ?? 0} Cadets
+                  </span>
+                </div>
+              </div>
+
+              {/* 2. Total Fee Collections */}
+              <div className="p-4 rounded-[var(--radius-md)] bg-[var(--surface-2)] border border-[var(--border)] space-y-1.5">
+                <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+                  <span className="font-semibold uppercase tracking-wider text-[10px]">Fee Collection</span>
+                  <IndianRupee className="w-4 h-4 text-[var(--success)]" />
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-black text-[var(--success)] tracking-tight">
+                    {formatPaise(overviewBranch.totalCollectedPaise ?? 0)}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-[var(--border)]/70 flex items-center justify-between text-[11px]">
+                  <span className="text-[var(--text-muted)]">Admission Fees</span>
+                  <span className="font-semibold text-[var(--text)]">
+                    {formatPaise(overviewBranch.admissionFeeCollectedPaise ?? 0)}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. Pending / Outstanding Dues */}
+              <div className="p-4 rounded-[var(--radius-md)] bg-[var(--surface-2)] border border-[var(--border)] space-y-1.5">
+                <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+                  <span className="font-semibold uppercase tracking-wider text-[10px]">Pending Dues</span>
+                  <Clock className="w-4 h-4 text-[var(--warning)]" />
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span
+                    className={`text-2xl font-black tracking-tight ${
+                      (overviewBranch.outstandingPaise ?? 0) > 0
+                        ? 'text-[var(--warning)]'
+                        : 'text-[var(--text)]'
+                    }`}
+                  >
+                    {formatPaise(overviewBranch.outstandingPaise ?? 0)}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-[var(--border)]/70 flex items-center justify-between text-[11px]">
+                  <span className="text-[var(--text-muted)]">Collection Rate</span>
+                  <span
+                    className={`font-bold ${
+                      (overviewBranch.collectionRate ?? 100) >= 90
+                        ? 'text-[var(--success)]'
+                        : 'text-[var(--warning)]'
+                    }`}
+                  >
+                    {overviewBranch.collectionRate ?? 100}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Operational Metrics Strip */}
+            <div className="p-4 rounded-[var(--radius-md)] bg-[var(--surface-2)] border border-[var(--border)] space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+                <span>Ground Operations &amp; Capacity</span>
+              </h3>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
+                <div className="p-2.5 rounded bg-[var(--surface)] border border-[var(--border)]">
+                  <div className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Active Batches</div>
+                  <div className="text-base font-bold text-[var(--text)] mt-0.5">
+                    {overviewBranch.batchCount ?? 0}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded bg-[var(--surface)] border border-[var(--border)]">
+                  <div className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Staff Members</div>
+                  <div className="text-base font-bold text-[var(--text)] mt-0.5">
+                    {overviewBranch.staffCount ?? 0}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded bg-[var(--surface)] border border-[var(--border)]">
+                  <div className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Managers</div>
+                  <div className="text-base font-bold text-[var(--text)] mt-0.5">
+                    {overviewBranch.managerCount ?? (overviewBranch.staffCount ? 1 : 0)}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded bg-[var(--surface)] border border-[var(--border)]">
+                  <div className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Coaching Staff</div>
+                  <div className="text-base font-bold text-[var(--text)] mt-0.5">
+                    {overviewBranch.coachCount ?? Math.max(0, (overviewBranch.staffCount ?? 0) - 1)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions Footer */}
+            <div className="pt-3 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Link
+                  href={{ pathname: '/admin/students', query: { branchId: overviewBranch.id } }}
+                  className="px-3 py-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-xs font-semibold text-[var(--text)] flex items-center gap-1 transition-colors"
+                >
+                  <Users className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+                  <span>View Cadets</span>
+                </Link>
+
+                <Link
+                  href={{ pathname: '/admin/batches', query: { branchId: overviewBranch.id } }}
+                  className="px-3 py-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-xs font-semibold text-[var(--text)] flex items-center gap-1 transition-colors"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+                  <span>View Batches</span>
+                </Link>
+
+                <Link
+                  href={{ pathname: '/admin/users', query: { branchId: overviewBranch.id } }}
+                  className="px-3 py-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-xs font-semibold text-[var(--text)] flex items-center gap-1 transition-colors"
+                >
+                  <UserCheck className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+                  <span>View Staff</span>
+                </Link>
+
+                <Link
+                  href={{ pathname: '/admin/reports', query: { branchId: overviewBranch.id } }}
+                  className="px-3 py-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-xs font-semibold text-[var(--primary-600)] flex items-center gap-1 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Branch Reports</span>
+                </Link>
+              </div>
+
+              <button
+                onClick={() => setOverviewBranch(null)}
+                className="px-4 py-1.5 rounded-md bg-[var(--primary-600)] hover:bg-[var(--primary-700)] text-white text-xs font-semibold transition-all cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* CREATE NEW BRANCH MODAL                                  */}
+      {/* ======================================================== */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
           <div className="w-full max-w-md bg-[var(--surface)] rounded-[var(--radius-md)] border border-[var(--border)] shadow-xl p-6 animate-in fade-in zoom-in-95 duration-150">

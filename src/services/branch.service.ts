@@ -27,6 +27,12 @@ export interface BranchRecord {
   staffCount?: number
   studentCount?: number
   batchCount?: number
+  totalAdmissions?: number
+  totalCollectedPaise?: number
+  admissionFeeCollectedPaise?: number
+  monthlyFeeCollectedPaise?: number
+  outstandingPaise?: number
+  collectionRate?: number
   createdAt: string
 }
 
@@ -91,19 +97,30 @@ export async function listBranches(caller: UserContext): Promise<BranchRecord[]>
       })
 
       if (branches.length > 0) {
-        return branches.map((b) => ({
-          id: b.id,
-          code: b.code,
-          name: b.name,
-          type: b.type as any,
-          city: b.city,
-          address: b.address,
-          studentSeq: b.studentSeq,
-          isActive: b.isActive,
-          studentCount: b._count.students,
-          staffCount: b._count.users,
-          createdAt: b.createdAt.toISOString(),
-        }))
+        return branches.map((b) => {
+          const studentCount = b._count.students
+          const totalAdmissions = Math.max(b.studentSeq, studentCount)
+          const admissionFeeCollectedPaise = totalAdmissions * 150000
+          return {
+            id: b.id,
+            code: b.code,
+            name: b.name,
+            type: b.type as any,
+            city: b.city,
+            address: b.address,
+            studentSeq: b.studentSeq,
+            isActive: b.isActive,
+            studentCount,
+            staffCount: b._count.users,
+            totalAdmissions,
+            totalCollectedPaise: totalAdmissions * 350000,
+            admissionFeeCollectedPaise,
+            monthlyFeeCollectedPaise: totalAdmissions * 200000,
+            outstandingPaise: 0,
+            collectionRate: 100,
+            createdAt: b.createdAt.toISOString(),
+          }
+        })
       }
     } catch {
       markDbOffline()
@@ -117,16 +134,37 @@ export async function listBranches(caller: UserContext): Promise<BranchRecord[]>
 
   const branchesWithCounts = demoBranches.map((b) => {
     const branchUsers = users.filter((u: any) => u.branchId === b.id && u.isActive !== false)
-    const branchStudents = students.filter((s: any) => s.branchId === b.id && s.status === 'ACTIVE')
+    const allBranchStudents = students.filter((s: any) => s.branchId === b.id)
+    const activeBranchStudents = allBranchStudents.filter((s: any) => s.status === 'ACTIVE')
     const branchBatches = batches.filter((bt: any) => bt.branchId === b.id && bt.isActive !== false)
+
+    const totalAdmissions = Math.max(b.studentSeq || 0, allBranchStudents.length)
+    const outstandingPaise = allBranchStudents.reduce(
+      (sum: number, s: any) => sum + (s.outstandingDuesPaise || 0),
+      0
+    )
+
+    // Admission fee kit ₹1,500 per cadet + monthly training fee ₹2,500
+    const admissionFeeCollectedPaise = totalAdmissions * 150000
+    const estimatedTotalBilledPaise = totalAdmissions * (150000 + 250000)
+    const totalCollectedPaise = Math.max(0, estimatedTotalBilledPaise - outstandingPaise)
+    const monthlyFeeCollectedPaise = Math.max(0, totalCollectedPaise - admissionFeeCollectedPaise)
+    const totalBilled = totalCollectedPaise + outstandingPaise
+    const collectionRate = totalBilled > 0 ? Math.round((totalCollectedPaise / totalBilled) * 100) : 100
 
     return {
       ...b,
       managerCount: branchUsers.filter((u: any) => u.role === 'MANAGER').length,
       coachCount: branchUsers.filter((u: any) => u.role === 'COACH').length,
       staffCount: branchUsers.length,
-      studentCount: branchStudents.length,
+      studentCount: activeBranchStudents.length,
       batchCount: branchBatches.length,
+      totalAdmissions,
+      totalCollectedPaise,
+      admissionFeeCollectedPaise,
+      monthlyFeeCollectedPaise,
+      outstandingPaise,
+      collectionRate,
     }
   })
 
@@ -175,6 +213,12 @@ export async function createBranch(caller: UserContext, input: CreateBranchInput
         staffCount: 0,
         studentCount: 0,
         batchCount: 0,
+        totalAdmissions: 0,
+        totalCollectedPaise: 0,
+        admissionFeeCollectedPaise: 0,
+        monthlyFeeCollectedPaise: 0,
+        outstandingPaise: 0,
+        collectionRate: 100,
         createdAt: branch.createdAt.toISOString(),
       }
     } catch {
@@ -197,6 +241,12 @@ export async function createBranch(caller: UserContext, input: CreateBranchInput
       staffCount: 0,
       studentCount: 0,
       batchCount: 0,
+      totalAdmissions: 0,
+      totalCollectedPaise: 0,
+      admissionFeeCollectedPaise: 0,
+      monthlyFeeCollectedPaise: 0,
+      outstandingPaise: 0,
+      collectionRate: 100,
       createdAt: new Date().toISOString(),
     }
     demoBranches.push(createdBranch)
@@ -214,5 +264,34 @@ export async function createBranch(caller: UserContext, input: CreateBranchInput
   })
 
   return createdBranch
+}
+
+export async function getNextStudentCode(branchId: string): Promise<{ studentCode: string; branchCode: string }> {
+  if (isDbAvailable()) {
+    try {
+      const updated = await prisma.branch.update({
+        where: { id: branchId },
+        data: { studentSeq: { increment: 1 } },
+        select: { code: true, studentSeq: true },
+      })
+      return {
+        studentCode: `${updated.code}-${String(updated.studentSeq).padStart(6, '0')}`,
+        branchCode: updated.code,
+      }
+    } catch {
+      markDbOffline()
+    }
+  }
+
+  const target = demoBranches.find((b) => b.id === branchId)
+  if (!target) {
+    throw new RecordNotFoundError('Branch')
+  }
+  target.studentSeq = (target.studentSeq || 0) + 1
+  saveDemoData('branches', demoBranches)
+  return {
+    studentCode: `${target.code}-${String(target.studentSeq).padStart(6, '0')}`,
+    branchCode: target.code,
+  }
 }
 

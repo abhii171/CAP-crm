@@ -2,466 +2,645 @@
   {
     "id": "std-1",
     "studentCode": "KKP-000001",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Aditya Sharma",
     "dob": "2012-03-15",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-08-01",
-    "emergencyName": "Rakesh Sharma",
-    "emergencyPhone": "+919876543210",
-    "guardian": {
-      "id": "grd-1",
-      "name": "Rakesh Sharma",
-      "whatsappNumber": "+919876543210",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": {
       "id": "batch-1",
       "name": "Under-14 Morning"
     },
-    "enrollments": [
-      {
-        "batchId": "batch-1",
-        "batchName": "Under-14 Morning",
-        "startDate": "2026-08-01",
-        "endDate": null
-      }
-    ],
-    "outstandingDuesPaise": 250000
+    "outstandingDuesPaise": 0
   },
   {
     "id": "std-2",
     "studentCode": "KKP-000002",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Rahul Verma",
     "dob": "2012-07-22",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-08-01",
-    "emergencyName": "Sunil Verma",
-    "emergencyPhone": "+919876543211",
-    "guardian": {
-      "id": "grd-2",
-      "name": "Sunil Verma",
-      "whatsappNumber": "+919876543211",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": {
       "id": "batch-1",
       "name": "Under-14 Morning"
     },
-    "enrollments": [
-      {
-        "batchId": "batch-1",
-        "batchName": "Under-14 Morning",
-        "startDate": "2026-08-01",
-        "endDate": null
-      }
-    ],
     "outstandingDuesPaise": 250000
   },
   {
     "id": "std-3",
     "studentCode": "KKP-000003",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Pranav Iyer",
     "dob": "2010-12-20",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-08-01",
-    "emergencyName": "Krishnan Iyer",
-    "emergencyPhone": "+919876543218",
-    "guardian": {
-      "id": "grd-3",
-      "name": "Krishnan Iyer",
-      "whatsappNumber": "+919876543218",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": {
       "id": "batch-2",
       "name": "Under-17 Evening"
     },
-    "enrollments": [
-      {
-        "batchId": "batch-2",
-        "batchName": "Under-17 Evening",
-        "startDate": "2026-08-01",
-        "endDate": null
-      }
-    ],
     "outstandingDuesPaise": 250000
   },
   {
     "id": "std-4",
     "studentCode": "KKP-000004",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Nikhil Iyer",
     "dob": "2009-06-14",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-08-01",
-    "emergencyName": "Krishnan Iyer",
-    "emergencyPhone": "+919876543218",
-    "guardian": {
-      "id": "grd-3",
-      "name": "Krishnan Iyer",
-      "whatsappNumber": "+919876543218",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": {
       "id": "batch-2",
       "name": "Under-17 Evening"
     },
-    "enrollments": [
-      {
-        "batchId": "batch-2",
-        "batchName": "Under-17 Evening",
-        "startDate": "2026-08-01",
-        "endDate": null
-      }
-    ],
     "outstandingDuesPaise": 250000
   },
   {
     "id": "std-5",
     "studentCode": "KKP-000005",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Rohan Gupta",
     "dob": "2013-05-11",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-08-10",
-    "emergencyName": "Amit Gupta",
-    "emergencyPhone": "+919876543220",
-    "guardian": {
-      "id": "grd-4",
-      "name": "Amit Gupta",
-      "whatsappNumber": "+919876543220",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": {
       "id": "batch-1",
       "name": "Under-14 Morning"
     },
-    "enrollments": [
-      {
-        "batchId": "batch-1",
-        "batchName": "Under-14 Morning",
-        "startDate": "2026-08-10",
-        "endDate": null
-      }
-    ],
     "outstandingDuesPaise": 0
   },
   {
     "id": "std-6",
     "studentCode": "KKP-000006",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Aarav Mehta",
     "dob": "2013-09-04",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-08-12",
-    "emergencyName": "Priya Mehta",
-    "emergencyPhone": "+919876543221",
-    "guardian": {
-      "id": "grd-5",
-      "name": "Priya Mehta",
-      "whatsappNumber": "+919876543221",
-      "whatsappOptIn": true,
-      "relationship": "Mother"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": {
       "id": "batch-1",
       "name": "Under-14 Morning"
     },
-    "enrollments": [
-      {
-        "batchId": "batch-1",
-        "batchName": "Under-14 Morning",
-        "startDate": "2026-08-12",
-        "endDate": null
-      }
-    ],
     "outstandingDuesPaise": 250000
   },
   {
     "id": "std-7",
     "studentCode": "KKP-000007",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Kabir Singh",
     "dob": "2012-11-19",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-08-15",
-    "emergencyName": "Jaspreet Singh",
-    "emergencyPhone": "+919876543222",
-    "guardian": {
-      "id": "grd-6",
-      "name": "Jaspreet Singh",
-      "whatsappNumber": "+919876543222",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": {
       "id": "batch-1",
       "name": "Under-14 Morning"
     },
-    "enrollments": [
-      {
-        "batchId": "batch-1",
-        "batchName": "Under-14 Morning",
-        "startDate": "2026-08-15",
-        "endDate": null
-      }
-    ],
     "outstandingDuesPaise": 0
   },
   {
     "id": "std-8",
     "studentCode": "KKP-000008",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Vihaan Reddy",
     "dob": "2010-04-18",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-08-05",
-    "emergencyName": "Suresh Reddy",
-    "emergencyPhone": "+919876543223",
-    "guardian": {
-      "id": "grd-7",
-      "name": "Suresh Reddy",
-      "whatsappNumber": "+919876543223",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": {
       "id": "batch-2",
       "name": "Under-17 Evening"
     },
-    "enrollments": [
-      {
-        "batchId": "batch-2",
-        "batchName": "Under-17 Evening",
-        "startDate": "2026-08-05",
-        "endDate": null
-      }
-    ],
     "outstandingDuesPaise": 250000
   },
   {
     "id": "std-9",
     "studentCode": "KKP-000009",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Ishaan Rao",
     "dob": "2010-08-25",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-08-18",
-    "emergencyName": "Venkat Rao",
-    "emergencyPhone": "+919876543224",
-    "guardian": {
-      "id": "grd-8",
-      "name": "Venkat Rao",
-      "whatsappNumber": "+919876543224",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": {
       "id": "batch-2",
       "name": "Under-17 Evening"
     },
-    "enrollments": [
-      {
-        "batchId": "batch-2",
-        "batchName": "Under-17 Evening",
-        "startDate": "2026-08-18",
-        "endDate": null
-      }
-    ],
     "outstandingDuesPaise": 0
   },
   {
     "id": "std-10",
     "studentCode": "KKP-000010",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Devansh Kulkarni",
     "dob": "2011-01-30",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-08-20",
-    "emergencyName": "Manoj Kulkarni",
-    "emergencyPhone": "+919876543225",
-    "guardian": {
-      "id": "grd-9",
-      "name": "Manoj Kulkarni",
-      "whatsappNumber": "+919876543225",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": {
       "id": "batch-3",
       "name": "Open Batch"
     },
-    "enrollments": [
-      {
-        "batchId": "batch-3",
-        "batchName": "Open Batch",
-        "startDate": "2026-08-20",
-        "endDate": null
-      }
-    ],
     "outstandingDuesPaise": 0
   },
   {
     "id": "std-11",
     "studentCode": "KKP-000011",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Aryan Joshi",
     "dob": "2011-06-12",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-08-22",
-    "emergencyName": "Naveen Joshi",
-    "emergencyPhone": "+919876543226",
-    "guardian": {
-      "id": "grd-10",
-      "name": "Naveen Joshi",
-      "whatsappNumber": "+919876543226",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": {
       "id": "batch-3",
       "name": "Open Batch"
     },
-    "enrollments": [
-      {
-        "batchId": "batch-3",
-        "batchName": "Open Batch",
-        "startDate": "2026-08-22",
-        "endDate": null
-      }
-    ],
     "outstandingDuesPaise": 250000
   },
   {
     "id": "std-12",
     "studentCode": "KKP-000012",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Samar Nair",
     "dob": "2012-09-14",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-09-01",
-    "emergencyName": "Gopal Nair",
-    "emergencyPhone": "+919876543227",
-    "guardian": {
-      "id": "grd-11",
-      "name": "Gopal Nair",
-      "whatsappNumber": "+919876543227",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": null,
-    "enrollments": [],
     "outstandingDuesPaise": 0
   },
   {
     "id": "std-13",
     "studentCode": "KKP-000013",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Shreyas Deshmukh",
     "dob": "2013-02-18",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-09-02",
-    "emergencyName": "Vikram Deshmukh",
-    "emergencyPhone": "+919876543228",
-    "guardian": {
-      "id": "grd-12",
-      "name": "Vikram Deshmukh",
-      "whatsappNumber": "+919876543228",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": {
       "id": "batch-1",
       "name": "Under-14 Morning"
     },
-    "enrollments": [
-      {
-        "batchId": "batch-1",
-        "batchName": "Under-14 Morning",
-        "startDate": "2026-10-31",
-        "endDate": null
-      }
-    ],
     "outstandingDuesPaise": 250000
   },
   {
     "id": "std-14",
     "studentCode": "KKP-000014",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Tanmay Bhatia",
     "dob": "2011-10-05",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-09-05",
-    "emergencyName": "Rajesh Bhatia",
-    "emergencyPhone": "+919876543229",
-    "guardian": {
-      "id": "grd-13",
-      "name": "Rajesh Bhatia",
-      "whatsappNumber": "+919876543229",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": null,
-    "enrollments": [],
     "outstandingDuesPaise": 0
   },
   {
     "id": "std-15",
     "studentCode": "KKP-000015",
-    "branchId": "branch-kkp",
-    "branchName": "CPA Kukatpally",
     "name": "Dhruv Patel",
     "dob": "2012-04-23",
     "gender": "Male",
     "status": "ACTIVE",
     "joinedOn": "2026-09-10",
-    "emergencyName": "Hitesh Patel",
-    "emergencyPhone": "+919876543230",
-    "guardian": {
-      "id": "grd-14",
-      "name": "Hitesh Patel",
-      "whatsappNumber": "+919876543230",
-      "whatsappOptIn": true,
-      "relationship": "Father"
-    },
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
     "currentBatch": null,
-    "enrollments": [],
     "outstandingDuesPaise": 0
+  },
+  {
+    "id": "std-1793471197469",
+    "studentCode": "KKP-000021",
+    "name": "Siddharth Rao",
+    "dob": "2013-05-10",
+    "gender": "Male",
+    "status": "INACTIVE",
+    "joinedOn": "2026-10-31",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
+    "currentBatch": {
+      "id": "batch-2",
+      "name": "Under-17 Evening"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793471201548",
+    "studentCode": "KKP-000022",
+    "name": "Aanya Rao",
+    "dob": "2016-08-20",
+    "gender": "Female",
+    "status": "ACTIVE",
+    "joinedOn": "2026-10-31",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793471227042",
+    "studentCode": "KKP-000023",
+    "name": "Siddharth Rao",
+    "dob": "2012-05-18",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-10-31",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793471232393",
+    "studentCode": "KKP-000024",
+    "name": "Kabir Mehta",
+    "dob": "2011-09-12",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-10-31",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793471237584",
+    "studentCode": "KKP-000025",
+    "name": "Reyansh Reddy",
+    "dob": "2013-04-10",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-10-31",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793471242941",
+    "studentCode": "KKP-000026",
+    "name": "Vihaan Joshi",
+    "dob": "2012-08-20",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-10-31",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793471247067",
+    "studentCode": "KKP-000027",
+    "name": "Tanvi Joshi",
+    "dob": "2014-02-14",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-10-31",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793471252518",
+    "studentCode": "KKP-000028",
+    "name": "Ananya Deshmukh",
+    "dob": "2013-03-22",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-10-31",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793471256658",
+    "studentCode": "KKP-000029",
+    "name": "Rohan Nambiar",
+    "dob": "2012-11-05",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-10-31",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793471263170",
+    "studentCode": "KKP-000030",
+    "name": "Siddharth Iyer",
+    "dob": "2012-07-14",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-10-31",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "whatsappOptIn": false,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793518904173",
+    "studentCode": "KKP-000031",
+    "name": "Siddharth Rao",
+    "dob": "2013-05-10",
+    "gender": "Male",
+    "status": "INACTIVE",
+    "joinedOn": "2026-11-01",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "guardianName": "Venkatesh Rao",
+    "guardianPhone": "+919929668670",
+    "whatsappOptIn": true,
+    "currentBatch": {
+      "id": "batch-2",
+      "name": "Under-17 Evening"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793518908330",
+    "studentCode": "KKP-000032",
+    "name": "Aanya Rao",
+    "dob": "2016-08-20",
+    "gender": "Female",
+    "status": "ACTIVE",
+    "joinedOn": "2026-11-01",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "guardianName": "Venkatesh Rao",
+    "guardianPhone": "+919929668670",
+    "whatsappOptIn": true,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793519002725",
+    "studentCode": "KKP-000033",
+    "name": "Siddharth Rao",
+    "dob": "2013-05-10",
+    "gender": "Male",
+    "status": "INACTIVE",
+    "joinedOn": "2026-11-01",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "guardianName": "Venkatesh Rao",
+    "guardianPhone": "+919949668034",
+    "whatsappOptIn": true,
+    "currentBatch": {
+      "id": "batch-2",
+      "name": "Under-17 Evening"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793519006852",
+    "studentCode": "KKP-000034",
+    "name": "Aanya Rao",
+    "dob": "2016-08-20",
+    "gender": "Female",
+    "status": "ACTIVE",
+    "joinedOn": "2026-11-01",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "guardianName": "Venkatesh Rao",
+    "guardianPhone": "+919949668034",
+    "whatsappOptIn": true,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793519033933",
+    "studentCode": "KKP-000035",
+    "name": "Siddharth Rao",
+    "dob": "2012-05-18",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-11-01",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "guardianName": "Vikram Rao",
+    "guardianPhone": "919876543210",
+    "whatsappOptIn": true,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793519039922",
+    "studentCode": "KKP-000036",
+    "name": "Kabir Mehta",
+    "dob": "2011-09-12",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-11-01",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "guardianName": "Rishi Mehta",
+    "guardianPhone": "919876543999",
+    "whatsappOptIn": true,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793519046220",
+    "studentCode": "KKP-000037",
+    "name": "Reyansh Reddy",
+    "dob": "2013-04-10",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-11-01",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "guardianName": "Sunita Reddy",
+    "guardianPhone": "919876541122",
+    "whatsappOptIn": true,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793519052561",
+    "studentCode": "KKP-000038",
+    "name": "Vihaan Joshi",
+    "dob": "2012-08-20",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-11-01",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "guardianName": "Amit Joshi",
+    "guardianPhone": "919876599001",
+    "whatsappOptIn": true,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793519056753",
+    "studentCode": "KKP-000039",
+    "name": "Tanvi Joshi",
+    "dob": "2014-02-14",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-11-01",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "guardianName": "Amit Joshi",
+    "guardianPhone": "919876599001",
+    "whatsappOptIn": true,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793519062304",
+    "studentCode": "KKP-000040",
+    "name": "Ananya Deshmukh",
+    "dob": "2013-03-22",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-11-01",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "guardianName": "Prakash Deshmukh",
+    "guardianPhone": "919876500111",
+    "whatsappOptIn": true,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793519066420",
+    "studentCode": "KKP-000041",
+    "name": "Rohan Nambiar",
+    "dob": "2012-11-05",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-11-01",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "guardianName": "Suresh Nambiar",
+    "guardianPhone": "919876500222",
+    "whatsappOptIn": false,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
+  },
+  {
+    "id": "std-1793519074502",
+    "studentCode": "KKP-000042",
+    "name": "Siddharth Iyer",
+    "dob": "2012-07-14",
+    "gender": null,
+    "status": "ACTIVE",
+    "joinedOn": "2026-11-01",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "guardianName": "Vikram Rao",
+    "guardianPhone": "919876543210",
+    "whatsappOptIn": true,
+    "currentBatch": {
+      "id": "batch-1",
+      "name": "Under-14 Morning"
+    },
+    "outstandingDuesPaise": 250000
   }
 ]

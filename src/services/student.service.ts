@@ -2,7 +2,7 @@ import { prisma, isDbAvailable, markDbOffline } from '@/lib/prisma'
 import { logAudit } from '@/lib/audit'
 import { UserContext, authorize, RecordNotFoundError, PermissionDeniedError } from '@/lib/rbac'
 import { scopeBranchWhere, assertBranchAccess, sanitizeStudentForRole } from '@/lib/branch-query'
-import { listBranches } from './branch.service'
+import { listBranches, getNextStudentCode } from './branch.service'
 import { listBatches, setBatchEnrolledCount } from './batch.service'
 import { loadDemoData, saveDemoData } from '@/lib/demo-storage'
 
@@ -553,8 +553,8 @@ export async function getStudentContactForAlert(
   if (match) {
     return {
       name: match.name,
-      guardianId: match.guardian?.id,
-      whatsappNumber: match.guardian?.whatsappNumber,
+      guardianId: match.guardian?.id || `grd-${match.id}`,
+      whatsappNumber: match.guardian?.whatsappNumber || match.guardianPhone,
     }
   }
   return null
@@ -574,7 +574,7 @@ export async function checkDuplicateStudent(
   const normName = data.name.trim().toLowerCase()
 
   const match = demoStudents.find((s) => {
-    const sPhone = s.guardian?.whatsappNumber?.replace(/\D/g, '')
+    const sPhone = (s.guardian?.whatsappNumber || s.guardianPhone || '').replace(/\D/g, '')
     if (sPhone === normPhone) {
       if (s.name.toLowerCase() === normName || (data.dob && s.dob === data.dob)) {
         return true
@@ -617,9 +617,8 @@ export async function admitStudent(
     throw new RecordNotFoundError('Batch')
   }
 
-  // Increment branch student sequence for gapless human-facing studentCode
-  branch.studentSeq = (branch.studentSeq || 0) + 1
-  const studentCode = `${branch.code}-${String(branch.studentSeq).padStart(6, '0')}`
+  // Generate gapless human-facing studentCode
+  const { studentCode } = await getNextStudentCode(branch.id)
 
   const nowIso = new Date().toISOString()
   const todayDate = nowIso.split('T')[0]
@@ -674,13 +673,7 @@ export async function admitStudent(
   try {
     // If DB is online, execute full atomic admission transaction
     await prisma.$transaction(async (tx) => {
-      // 1. Update branch studentSeq
-      await tx.branch.update({
-        where: { id: branch.id },
-        data: { studentSeq: { increment: 1 } },
-      })
-
-      // 2. Upsert Guardian
+      // 1. Upsert Guardian
       const g = await tx.guardian.upsert({
         where: { branchId_whatsappNumber: { branchId: branch.id, whatsappNumber: input.whatsappNumber.trim() } },
         update: { whatsappOptIn: input.whatsappOptIn },

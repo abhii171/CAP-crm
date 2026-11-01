@@ -129,6 +129,9 @@ async function runTests() {
     assert(err instanceof PermissionDeniedError, 'Franchise manager creating batch throws PermissionDeniedError')
   }
 
+  // Cleanup test batch so re-running tests is idempotent
+  await updateBatch(ownedManager, newBatch.id, { isActive: false })
+
   console.log('\n' + '='.repeat(50))
   console.log(`Step 1.6 Batches Test Results: ${passed} passed, ${failed} failed`)
   if (failed > 0) process.exit(1)

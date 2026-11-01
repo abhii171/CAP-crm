@@ -5,3 +5,4 @@ node_modules/
 *.tsbuildinfo
 prisma/migrations/*.sql.bak
 cookies.txt
+.backups/
