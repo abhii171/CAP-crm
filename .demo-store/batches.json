@@ -1481,5 +1481,55 @@
         "isPrimary": true
       }
     ]
+  },
+  {
+    "id": "batch-1793634685062",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "branchCode": "KKP",
+    "name": "Under-12 Weekend Clinic",
+    "ageGroup": "U12",
+    "capacity": 18,
+    "enrolledCount": 0,
+    "daysOfWeek": [
+      0,
+      6
+    ],
+    "startTime": "08:00",
+    "endTime": "10:00",
+    "isActive": false,
+    "currentCoach": {
+      "id": "usr-cch-1",
+      "name": "Arjun Sharma",
+      "loginId": "CCH-KKP-001",
+      "isPrimary": true
+    },
+    "createdAt": "2026-11-02T15:51:25.062Z",
+    "assignedCoaches": [
+      {
+        "coachId": "usr-cch-2",
+        "name": "Vikram Patel",
+        "isPrimary": false,
+        "assignedFrom": "2026-11-02"
+      },
+      {
+        "coachId": "usr-cch-1",
+        "name": "Arjun Sharma",
+        "isPrimary": true,
+        "assignedFrom": "2026-11-02"
+      }
+    ],
+    "coachingStaff": [
+      {
+        "id": "usr-cch-2",
+        "name": "Vikram Patel",
+        "isPrimary": false
+      },
+      {
+        "id": "usr-cch-1",
+        "name": "Arjun Sharma",
+        "isPrimary": true
+      }
+    ]
   }
 ]

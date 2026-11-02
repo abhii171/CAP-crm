@@ -539,7 +539,7 @@ export default function AdminBatchesPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
+      <main className="dashboard-container max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-5 min-w-0">
         {/* Branch Filter & Stats Bar */}
         <div className="flex items-center justify-between gap-3 flex-wrap p-3.5 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)]">
           <div className="flex items-center gap-2 flex-wrap">

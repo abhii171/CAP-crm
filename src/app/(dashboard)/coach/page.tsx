@@ -72,7 +72,7 @@ export default function CoachPage() {
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <DashboardHeader />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      <main className="dashboard-container max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 min-w-0">
         {/* Mobile-first Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>

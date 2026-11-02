@@ -358,39 +358,39 @@ export default function ManagerMessagesPage() {
   return (
     <div className="min-h-screen bg-[var(--surface-1)]">
       <DashboardHeader />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <main className="dashboard-container mx-auto max-w-7xl px-3 sm:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 min-w-0">
         {/* Header */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary-100)]">
-              <MessageSquare className="h-5 w-5 text-[var(--primary-600)]" />
+        <div className="mb-4 sm:mb-6 flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary-100)] shrink-0">
+              <MessageSquare className="h-5 w-5 text-[var(--primary-600)] shrink-0" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-[var(--text-primary)]">WhatsApp Communications</h1>
-              <p className="text-sm text-[var(--text-secondary)]">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] truncate">WhatsApp Communications</h1>
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)]">
                 Broadcast notices, automated alerts, delivery tracking &amp; shared reply triage
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             <button
               onClick={openBroadcastModal}
-              className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow transition-transform active:scale-95 bg-[var(--primary-600)] hover:bg-[var(--primary-700)]"
+              className="flex items-center gap-2 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow transition-transform active:scale-95 bg-[var(--primary-600)] hover:bg-[var(--primary-700)] shrink-0"
             >
-              <Megaphone className="h-4 w-4" /> Broadcast Notice
+              <Megaphone className="h-4 w-4 shrink-0" /> Broadcast Notice
             </button>
             <button
               onClick={() => { setShowSendModal(true); setFeedback(null) }}
-              className="flex items-center gap-2 rounded-xl border border-[var(--border)] px-3.5 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-2)] shadow-xs"
+              className="flex items-center gap-2 rounded-xl border border-[var(--border)] px-3 sm:px-3.5 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-2)] shadow-xs shrink-0"
             >
-              <Send className="h-4 w-4 text-[var(--accent-600)]" /> Test Notice
+              <Send className="h-4 w-4 text-[var(--accent-600)] shrink-0" /> Test Notice
             </button>
           </div>
         </div>
 
         {/* Tab Switcher */}
-        <div className="mb-6 flex border-b border-[var(--border)]">
+        <div className="mb-4 sm:mb-6 flex border-b border-[var(--border)] overflow-x-auto no-scrollbar whitespace-nowrap min-w-0">
           <button
             onClick={() => setActiveTab('LOGS')}
             className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold transition-colors border-b-2 ${

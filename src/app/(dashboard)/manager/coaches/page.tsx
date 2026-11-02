@@ -148,7 +148,7 @@ export default function ManagerCoachesPage() {
       <DashboardHeader />
 
       {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-4">
+      <main className="dashboard-container max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 md:py-8 space-y-4 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[var(--border)]">
           <div className="flex items-center gap-3">
             <Link

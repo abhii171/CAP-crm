@@ -89,7 +89,7 @@ export default function AdminFeePlansPage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--surface-1)' }}>
       <DashboardHeader />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      <main className="dashboard-container mx-auto max-w-7xl px-3 sm:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 min-w-0">
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">

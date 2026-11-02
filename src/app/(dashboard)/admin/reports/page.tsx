@@ -78,15 +78,15 @@ export default function AdminReportsPage() {
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <DashboardHeader />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      <main className="dashboard-container max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 min-w-0">
         {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[var(--border)]">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary-100)]">
-              <BarChart3 className="h-5 w-5 text-[var(--primary-600)]" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 pb-3 sm:pb-4 border-b border-[var(--border)] min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary-100)] shrink-0">
+              <BarChart3 className="h-5 w-5 text-[var(--primary-600)] shrink-0" />
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text)]">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text)] truncate">
                 Academy Reports &amp; Financial Insights
               </h1>
               <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">
@@ -95,7 +95,7 @@ export default function AdminReportsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <select
               value={branchFilter}
               onChange={(e) => setBranchFilter(e.target.value)}
@@ -111,16 +111,16 @@ export default function AdminReportsPage() {
 
             <button
               onClick={handleDownloadCsv}
-              className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-bold text-white bg-[var(--primary-600)] hover:bg-[var(--primary-700)] shadow-xs transition-colors"
+              className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-bold text-white bg-[var(--primary-600)] hover:bg-[var(--primary-700)] shadow-xs transition-colors shrink-0"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5 shrink-0" />
               <span>Export CSV</span>
             </button>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-[var(--border)]">
+        {/* Tab Navigation - Horizontally Scrollable on Mobile/Tablet */}
+        <div className="flex border-b border-[var(--border)] overflow-x-auto no-scrollbar whitespace-nowrap min-w-0">
           {[
             { id: 'OUTSTANDING_FEES', label: 'Outstanding Fees', icon: IndianRupee },
             { id: 'COLLECTIONS', label: 'Collections (Cash vs Online)', icon: FileSpreadsheet },
@@ -133,13 +133,13 @@ export default function AdminReportsPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-semibold transition-colors border-b-2 ${
+                className={`flex items-center gap-2 px-3.5 sm:px-5 py-3 text-xs sm:text-sm font-semibold transition-colors border-b-2 shrink-0 whitespace-nowrap ${
                   isActive
                     ? 'border-[var(--primary-600)] text-[var(--primary-700)] bg-[var(--surface-2)]/50'
                     : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text)]'
                 }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4 shrink-0" />
                 <span>{tab.label}</span>
               </button>
             )

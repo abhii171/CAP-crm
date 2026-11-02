@@ -257,7 +257,7 @@ export default function CoachAttendancePage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--surface-1)' }}>
       <DashboardHeader />
-      <main className="mx-auto max-w-xl px-4 py-5 sm:px-6">
+      <main className="dashboard-container mx-auto max-w-xl px-3 sm:px-6 py-4 sm:py-5 min-w-0">
         {/* Offline Banner */}
         {!isOnline && (
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs font-semibold text-amber-800 shadow-xs">

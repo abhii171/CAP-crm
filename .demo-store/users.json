@@ -1116,5 +1116,35 @@
     "mustChangePassword": true,
     "createdAt": "2026-11-02T09:21:02.895Z",
     "passwordHash": "$2a$12$POAg67e4w5rXBJ0GQEJebuO50XYn5flIKGEFVn1uZXSrRjhe.dGPW"
+  },
+  {
+    "id": "usr-mgr-1793634682932",
+    "loginId": "MGR-GCH-033",
+    "name": "Virender Sehwag",
+    "email": null,
+    "phone": null,
+    "role": "MANAGER",
+    "branchId": "branch-gch",
+    "branchName": "CPA Gachibowli Stadium",
+    "branchCode": "GCH",
+    "isActive": true,
+    "mustChangePassword": true,
+    "createdAt": "2026-11-02T15:51:22.932Z",
+    "passwordHash": "$2a$12$huOW6.dX/.us7.ZkBSImOu59vkUJPBXSjaPA4fR5Kic4Ij88KQJmq"
+  },
+  {
+    "id": "usr-cch-1793634683397",
+    "loginId": "CCH-KKP-038",
+    "name": "Harbhajan Singh",
+    "email": null,
+    "phone": null,
+    "role": "COACH",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "branchCode": "KKP",
+    "isActive": false,
+    "mustChangePassword": true,
+    "createdAt": "2026-11-02T15:51:23.397Z",
+    "passwordHash": "$2a$12$novoQPjATITQedSYeIFYX.hpGUNKwvaT/IL8UEk9I1vPRYb3vti9W"
   }
 ]

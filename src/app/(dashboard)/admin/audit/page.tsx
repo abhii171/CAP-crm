@@ -122,7 +122,7 @@ export default function AuditLogPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+      <main className="dashboard-container max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 min-w-0">
         {/* Filter Bar */}
         <div className="p-4 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">

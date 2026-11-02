@@ -171,19 +171,19 @@ export default function ManagerPage() {
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <DashboardHeader />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      <main className="dashboard-container max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-6 min-w-0">
         {/* Welcome Section & Navigation Bar (Mirrors Admin Overview) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[var(--border)]">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-muted)]">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 pb-3 sm:pb-4 border-b border-[var(--border)]">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-muted)] shrink-0">
                 {stats.branchCode}
               </span>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text)]">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text)] truncate">
                 {stats.branchName} Overview
               </h1>
               <span
-                className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${
+                className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border shrink-0 ${
                   stats.branchType === 'OWNED'
                     ? 'bg-[var(--primary-50)] text-[var(--primary-700)] border-[var(--primary-600)]/30'
                     : 'bg-[var(--accent-50)] text-[var(--warning)] border-[var(--warning)]/30'
@@ -193,7 +193,7 @@ export default function ManagerPage() {
               </span>
               <button
                 onClick={fetchLiveData}
-                className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors ml-1"
+                className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors ml-1 shrink-0"
                 title="Refresh Live Data"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -204,119 +204,119 @@ export default function ManagerPage() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
             <Link
               href="/manager/students"
-              className="h-8 px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold flex items-center gap-1.5 transition-colors text-[var(--text)]"
+              className="h-8 px-2.5 sm:px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold flex items-center gap-1.5 transition-colors text-[var(--text)] shrink-0"
             >
-              <Users className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+              <Users className="w-3.5 h-3.5 text-[var(--primary-600)] shrink-0" />
               <span>Cadets ({stats.cadetsCount})</span>
             </Link>
             <Link
               href="/manager/batches"
-              className="h-8 px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold flex items-center gap-1.5 transition-colors text-[var(--text)]"
+              className="h-8 px-2.5 sm:px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold flex items-center gap-1.5 transition-colors text-[var(--text)] shrink-0"
             >
-              <Calendar className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+              <Calendar className="w-3.5 h-3.5 text-[var(--primary-600)] shrink-0" />
               <span>Batches ({stats.batchesCount})</span>
             </Link>
             <Link
               href="/manager/coaches"
-              className="h-8 px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold flex items-center gap-1.5 transition-colors text-[var(--text)]"
+              className="h-8 px-2.5 sm:px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold flex items-center gap-1.5 transition-colors text-[var(--text)] shrink-0"
             >
-              <UserCheck className="w-3.5 h-3.5 text-[var(--accent-500)]" />
+              <UserCheck className="w-3.5 h-3.5 text-[var(--accent-500)] shrink-0" />
               <span>Coaches ({stats.coachesCount})</span>
             </Link>
             <Link
               href="/manager/attendance"
-              className="h-8 px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold flex items-center gap-1.5 transition-colors text-[var(--text)]"
+              className="h-8 px-2.5 sm:px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold flex items-center gap-1.5 transition-colors text-[var(--text)] shrink-0"
             >
-              <Clock className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+              <Clock className="w-3.5 h-3.5 text-[var(--primary-600)] shrink-0" />
               <span>Attendance</span>
             </Link>
             <Link
               href="/manager/payments"
-              className="h-8 px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold flex items-center gap-1.5 transition-colors text-[var(--text)]"
+              className="h-8 px-2.5 sm:px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold flex items-center gap-1.5 transition-colors text-[var(--text)] shrink-0"
             >
-              <IndianRupee className="w-3.5 h-3.5 text-[var(--warning)]" />
+              <IndianRupee className="w-3.5 h-3.5 text-[var(--warning)] shrink-0" />
               <span>Cash Close</span>
             </Link>
             <Link
               href="/manager/messages"
-              className="h-8 px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold flex items-center gap-1.5 transition-colors text-[var(--text)]"
+              className="h-8 px-2.5 sm:px-3 rounded-md bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold flex items-center gap-1.5 transition-colors text-[var(--text)] shrink-0"
             >
-              <MessageCircle className="w-3.5 h-3.5 text-[var(--accent-500)]" />
+              <MessageCircle className="w-3.5 h-3.5 text-[var(--accent-500)] shrink-0" />
               <span>WhatsApp ({stats.unreadInboxCount})</span>
             </Link>
           </div>
         </div>
 
         {/* 4 Snapshot KPI Tiles (Matches Admin Overview Layout) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
           <Link
             href="/manager/batches"
-            className="p-4 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs hover:border-[var(--primary-600)]/40 transition-all block group"
+            className="p-4 sm:p-5 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs hover:border-[var(--primary-600)]/40 transition-all flex flex-col justify-between group min-w-0"
           >
             <div className="flex items-center justify-between text-[var(--text-muted)] mb-2">
               <span className="text-xs font-medium uppercase tracking-wider">Training Batches</span>
-              <Calendar className="w-4 h-4 text-[var(--primary-600)] group-hover:scale-110 transition-transform" />
+              <Calendar className="w-4 h-4 text-[var(--primary-600)] group-hover:scale-110 transition-transform shrink-0" />
             </div>
-            <div className="text-2xl font-bold tracking-tight text-[var(--text)] tabular-nums">
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)] tabular-nums">
               {stats.batchesCount}
             </div>
-            <div className="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-1">
+            <div className="text-xs text-[var(--text-muted)] mt-2 flex items-center gap-1">
               <span>View &amp; allocate cohorts</span>
-              <ArrowUpRight className="w-3 h-3 text-[var(--primary-600)]" />
+              <ArrowUpRight className="w-3 h-3 text-[var(--primary-600)] shrink-0" />
             </div>
           </Link>
 
           <Link
             href="/manager/students"
-            className="p-4 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs hover:border-[var(--primary-600)]/40 transition-all block group"
+            className="p-4 sm:p-5 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs hover:border-[var(--primary-600)]/40 transition-all flex flex-col justify-between group min-w-0"
           >
             <div className="flex items-center justify-between text-[var(--text-muted)] mb-2">
               <span className="text-xs font-medium uppercase tracking-wider">Enrolled Cadets</span>
-              <Users className="w-4 h-4 text-[var(--accent-500)] group-hover:scale-110 transition-transform" />
+              <Users className="w-4 h-4 text-[var(--accent-500)] group-hover:scale-110 transition-transform shrink-0" />
             </div>
-            <div className="text-2xl font-bold tracking-tight text-[var(--text)] tabular-nums">
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)] tabular-nums">
               {stats.cadetsCount}
             </div>
-            <div className="text-xs text-[var(--success)] mt-1 font-medium flex items-center gap-1">
+            <div className="text-xs text-[var(--success)] mt-2 font-medium flex items-center gap-1">
               <span>Active roster in this facility</span>
-              <ArrowUpRight className="w-3 h-3 text-[var(--success)]" />
+              <ArrowUpRight className="w-3 h-3 text-[var(--success)] shrink-0" />
             </div>
           </Link>
 
           <Link
             href="/manager/payments"
-            className="p-4 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs hover:border-[var(--primary-600)]/40 transition-all block group"
+            className="p-4 sm:p-5 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs hover:border-[var(--primary-600)]/40 transition-all flex flex-col justify-between group min-w-0"
           >
             <div className="flex items-center justify-between text-[var(--text-muted)] mb-2">
               <span className="text-xs font-medium uppercase tracking-wider">Outstanding Dues</span>
-              <IndianRupee className="w-4 h-4 text-[var(--warning)] group-hover:scale-110 transition-transform" />
+              <IndianRupee className="w-4 h-4 text-[var(--warning)] group-hover:scale-110 transition-transform shrink-0" />
             </div>
-            <div className="text-2xl font-bold tracking-tight text-[var(--warning)] tabular-nums">
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--warning)] tabular-nums truncate">
               {formatPaise(stats.outstandingPaise)}
             </div>
-            <div className="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-1">
+            <div className="text-xs text-[var(--text-muted)] mt-2 flex items-center gap-1">
               <span>Branch balance &amp; receipts</span>
-              <ArrowUpRight className="w-3 h-3 text-[var(--warning)]" />
+              <ArrowUpRight className="w-3 h-3 text-[var(--warning)] shrink-0" />
             </div>
           </Link>
 
           <Link
             href="/manager/coaches"
-            className="p-4 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs hover:border-[var(--primary-600)]/40 transition-all block group"
+            className="p-4 sm:p-5 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs hover:border-[var(--primary-600)]/40 transition-all flex flex-col justify-between group min-w-0"
           >
             <div className="flex items-center justify-between text-[var(--text-muted)] mb-2">
               <span className="text-xs font-medium uppercase tracking-wider">Coaching Staff</span>
-              <UserCheck className="w-4 h-4 text-[var(--success)] group-hover:scale-110 transition-transform" />
+              <UserCheck className="w-4 h-4 text-[var(--success)] group-hover:scale-110 transition-transform shrink-0" />
             </div>
-            <div className="text-2xl font-bold tracking-tight text-[var(--text)] tabular-nums">
+            <div className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)] tabular-nums">
               {stats.coachesCount}
             </div>
-            <div className="text-xs text-[var(--text-muted)] mt-1 flex items-center gap-1">
+            <div className="text-xs text-[var(--text-muted)] mt-2 flex items-center gap-1">
               <span>Assigned coaches &amp; staff</span>
-              <ArrowUpRight className="w-3 h-3 text-[var(--success)]" />
+              <ArrowUpRight className="w-3 h-3 text-[var(--success)] shrink-0" />
             </div>
           </Link>
         </div>

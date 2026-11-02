@@ -128,10 +128,36 @@
   box-sizing: border-box;
 }
 
+html,
 body {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  overflow-x: hidden;
   background-color: var(--bg);
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+img,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.dashboard-container {
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+}
+
+/* Controlled horizontal scrolling container for tables across all devices */
+.responsive-table-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Tabular numerals for amounts, dates, receipt numbers */

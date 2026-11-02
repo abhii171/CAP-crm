@@ -528,7 +528,7 @@ export default function ManagerBatchesPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-5">
+      <main className="dashboard-container max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-5 min-w-0">
         {branchType === 'FRANCHISE' && (
           <div className="p-4 rounded-lg bg-[var(--accent-50)] border border-[var(--warning)]/30 text-xs text-[var(--warning)] font-medium flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />
