@@ -146,12 +146,12 @@ export function findDemoUserForAuth(identifier: string): (UserSummary & { passwo
   )
 }
 
-/** Generate a temporary password that satisfies security rules (min 10 chars, mixed case, number, symbol) */
+/** Generate a temporary password using cryptographically secure random values (min 10 chars, mixed case, number, symbol) */
 function generateTempPassword(): string {
   const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   let str = ''
   for (let i = 0; i < 7; i++) {
-    str += chars.charAt(Math.floor(Math.random() * chars.length))
+    str += chars.charAt(crypto.randomInt(0, chars.length))
   }
   return `Cpa#${str}9!`
 }

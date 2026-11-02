@@ -178,8 +178,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-    // 3. Fallback to Demo Credentials if DB was not reachable or user wasn't in DB
-    if (!dbSuccess) {
+    // 3. Fallback to Demo Credentials strictly if DEMO_MODE is enabled
+    const isDemoMode = process.env.DEMO_MODE === 'true'
+    if (!dbSuccess && isDemoMode) {
       const demoUser = DEMO_USERS.find(
         (u) =>
           u.loginId.toLowerCase() === trimmedId.toLowerCase() ||

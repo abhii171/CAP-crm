@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
+import { logAudit } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,6 +66,17 @@ export async function POST(req: NextRequest) {
 
     session.mustChangePassword = false
     await session.save()
+
+    const ip = req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1'
+    await logAudit({
+      actorId: session.userId,
+      branchId: session.branchId,
+      action: 'user.password_change',
+      entityType: 'User',
+      entityId: session.userId,
+      reason: 'User successfully changed password',
+      ip,
+    })
 
     return NextResponse.json({
       success: true,

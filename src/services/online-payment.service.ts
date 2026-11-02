@@ -426,10 +426,10 @@ export async function processOnlineRefundWebhook(input: {
   signature?: string
   rawBody?: string
 }): Promise<{ success: boolean; message: string }> {
-  if (input.rawBody && input.signature) {
-    const isValid = verifyWebhookSignature(input.rawBody, input.signature)
-    if (!isValid) {
-      throw new Error('Invalid webhook HMAC signature.')
+  // 1. Signature Verification (mandatory if incoming from webhook; fails closed if invalid)
+  if (input.rawBody || input.signature) {
+    if (!input.signature || !input.rawBody || !verifyWebhookSignature(input.rawBody, input.signature)) {
+      throw new SecurityError('Invalid webhook HMAC signature.', 401)
     }
   }
 

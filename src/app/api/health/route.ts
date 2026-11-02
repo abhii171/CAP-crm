@@ -21,10 +21,11 @@ export async function GET() {
         latencyMs: Date.now() - dbStart,
       }
     } catch (err: any) {
+      console.error('Database health check failed:', err)
       checks.database = {
         status: 'DOWN',
         type: 'POSTGRESQL',
-        error: err.message,
+        error: 'Database connection unavailable',
       }
       isHealthy = false
     }

@@ -3,12 +3,26 @@ import { createEnquiry, isFeatureEnabled } from '@/modules/phase2'
 
 export const dynamic = 'force-dynamic'
 
-// In-memory sliding window rate limiter (max 5 submissions per minute per IP / phone)
+// Bounded in-memory sliding window rate limiter with TTL eviction
 const rateLimitMap: Map<string, number[]> = new Map()
+const MAX_RATE_LIMIT_KEYS = 5000
 
 function isRateLimited(identifier: string, limit = 5, windowMs = 60000): boolean {
   const now = Date.now()
   const timestamps = (rateLimitMap.get(identifier) || []).filter((t) => now - t < windowMs)
+
+  // Evict expired entries when capacity threshold is reached to prevent memory leaks
+  if (rateLimitMap.size > MAX_RATE_LIMIT_KEYS) {
+    for (const [key, ts] of rateLimitMap.entries()) {
+      const active = ts.filter((t) => now - t < windowMs)
+      if (active.length === 0) {
+        rateLimitMap.delete(key)
+      } else {
+        rateLimitMap.set(key, active)
+      }
+    }
+  }
+
   if (timestamps.length >= limit) {
     return true
   }
@@ -19,7 +33,10 @@ function isRateLimited(identifier: string, limit = 5, windowMs = 60000): boolean
 
 export async function POST(req: NextRequest) {
   try {
-    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1'
+    const clientIp =
+      req.headers.get('x-real-ip')?.trim() ||
+      req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      '127.0.0.1'
 
     // Rate-limit by client IP
     if (isRateLimited(`ip:${clientIp}`, 5, 60000)) {

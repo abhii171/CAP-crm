@@ -41,7 +41,7 @@ export const sessionOptions = {
   },
   cookieName: 'cpa_crm_session',
   cookieOptions: {
-    secure: process.env.COOKIE_SECURE === 'true' || (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') === true),
+    secure: process.env.COOKIE_SECURE === 'true' || (process.env.NODE_ENV === 'production' && process.env.COOKIE_SECURE !== 'false'),
     httpOnly: true,
     sameSite: 'lax' as const,
     maxAge: 24 * 60 * 60, // 24 hours maximum cookie lifespan
