@@ -18,6 +18,9 @@ export type Action =
   // Branch management
   | 'branch:create'
   | 'branch:edit'
+  | 'branch:delete'
+  | 'branch:archive'
+  | 'branch:restore'
   | 'branch:view_all'
   | 'branch:view'
 
@@ -32,6 +35,9 @@ export type Action =
   // Batch management
   | 'batch:create'
   | 'batch:edit'
+  | 'batch:delete'
+  | 'batch:archive'
+  | 'batch:restore'
   | 'batch:view'
   | 'batch:assign_coach'
 
@@ -132,6 +138,9 @@ export function can(user: UserContext, action: Action, targetBranchType?: Branch
       // Forbidden for any manager
       case 'branch:create':
       case 'branch:edit':
+      case 'branch:delete':
+      case 'branch:archive':
+      case 'branch:restore':
       case 'branch:view_all':
       case 'manager:create':
       case 'manager:reassign':
@@ -145,6 +154,9 @@ export function can(user: UserContext, action: Action, targetBranchType?: Branch
       case 'coach:reset_password':
       case 'batch:create':
       case 'batch:edit':
+      case 'batch:delete':
+      case 'batch:archive':
+      case 'batch:restore':
       case 'batch:assign_coach':
         return !isFranchise // Allowed ONLY for OWNED branches
 

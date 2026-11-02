@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { DashboardHeader } from '@/components/dashboard-header'
 import {
   Building2,
@@ -36,67 +37,42 @@ interface AdminStats {
 }
 
 export default function AdminPage() {
-  const [stats, setStats] = useState<AdminStats>({
-    branchCount: 0,
-    cadetCount: 0,
-    staffCount: 0,
-    outstandingPaise: 0,
-    todayCollectionsPaise: 0,
-    recentLogs: [],
-  })
-  const [loading, setLoading] = useState(true)
-
-  const fetchLiveStats = async () => {
-    setLoading(true)
-    try {
-      const [branchesRes, studentsRes, usersRes, auditRes, outstandingRes] = await Promise.all([
-        fetch('/api/branches').catch(() => null),
-        fetch('/api/students').catch(() => null),
-        fetch('/api/users').catch(() => null),
-        fetch('/api/audit').catch(() => null),
-        fetch('/api/reports/outstanding').catch(() => null),
+  const {
+    data: stats = {
+      branchCount: 0,
+      cadetCount: 0,
+      staffCount: 0,
+      outstandingPaise: 0,
+      todayCollectionsPaise: 0,
+      recentLogs: [],
+    },
+    isLoading: loading,
+    refetch,
+  } = useQuery<AdminStats>({
+    queryKey: ['admin-stats'],
+    queryFn: async () => {
+      // Fast consolidated queries: admin metrics + staff + recent audit activity
+      const [dashRes, usersRes, auditRes] = await Promise.all([
+        fetch('/api/dashboard/admin').then((r) => r.json()).catch(() => null),
+        fetch('/api/users').then((r) => r.json()).catch(() => null),
+        fetch('/api/audit?limit=5').then((r) => r.json()).catch(() => null),
       ])
 
-      const branchesData = branchesRes ? await branchesRes.json().catch(() => ({})) : {}
-      const studentsData = studentsRes ? await studentsRes.json().catch(() => ({})) : {}
-      const usersData = usersRes ? await usersRes.json().catch(() => ({})) : {}
-      const auditData = auditRes ? await auditRes.json().catch(() => ({})) : {}
-      const outstandingData = outstandingRes ? await outstandingRes.json().catch(() => ({})) : {}
+      const dash = dashRes?.dashboard
+      const users = usersRes?.users || (Array.isArray(usersRes) ? usersRes : [])
+      const logs = auditRes?.logs || []
 
-      const branches = branchesData.branches || (Array.isArray(branchesData) ? branchesData : [])
-      const students = studentsData.students || (Array.isArray(studentsData) ? studentsData : [])
-      const users = usersData.users || (Array.isArray(usersData) ? usersData : [])
-      const logs = auditData.logs || []
-
-      // Calculate total outstanding paise dynamically from students or report
-      let totalOutstanding = 0
-      if (outstandingData.report?.summary?.totalOutstandingPaise != null) {
-        totalOutstanding = outstandingData.report.summary.totalOutstandingPaise
-      } else {
-        totalOutstanding = students.reduce(
-          (acc: number, s: any) => acc + (s.outstandingDuesPaise || 0),
-          0
-        )
-      }
-
-      setStats({
-        branchCount: branches.length,
-        cadetCount: students.length,
+      return {
+        branchCount: dash?.branchesCount || dash?.branches?.length || 0,
+        cadetCount: dash?.operations?.totalActiveCadets || 0,
         staffCount: users.length,
-        outstandingPaise: totalOutstanding,
-        todayCollectionsPaise: 0,
+        outstandingPaise: dash?.financials?.totalOutstandingPaise || 0,
+        todayCollectionsPaise: dash?.financials?.totalNetCollectionsPaise || 0,
         recentLogs: logs.slice(0, 5),
-      })
-    } catch (err) {
-      console.error('Failed to load admin stats:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchLiveStats()
-  }, [])
+      }
+    },
+    staleTime: 60 * 1000, // 60s memory cache: eliminates loading spinners on back navigation
+  })
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
@@ -111,7 +87,7 @@ export default function AdminPage() {
                 Admin Overview
               </h1>
               <button
-                onClick={fetchLiveStats}
+                onClick={() => refetch()}
                 className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors shrink-0"
                 title="Refresh Live Data"
               >

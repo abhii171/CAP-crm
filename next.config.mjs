@@ -2,10 +2,13 @@
 const nextConfig = {
   experimental: {
     typedRoutes: true,
+    optimizePackageImports: ['lucide-react'],
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
+  compress: true,
+  poweredByHeader: false,
   async headers() {
     return [
       {

@@ -201,13 +201,19 @@ async function checkCoachDoubleBooking(
 
 export async function listBatches(
   caller: UserContext,
-  branchId?: string
+  branchId?: string,
+  options?: { includeArchived?: boolean; onlyArchived?: boolean }
 ): Promise<BatchSummary[]> {
   if (isDbAvailable()) {
     try {
-      const where = scopeBranchWhere(caller, {
-        isActive: true,
-      }, branchId)
+      const baseWhere: any = {}
+      if (options?.onlyArchived) {
+        baseWhere.isActive = false
+      } else if (!options?.includeArchived) {
+        baseWhere.isActive = true
+      }
+
+      const where = scopeBranchWhere(caller, baseWhere, branchId)
 
       const batches = await prisma.batch.findMany({
         where,
@@ -269,6 +275,11 @@ export async function listBatches(
     .filter((b) => {
       if (caller.role !== 'ADMIN' && b.branchId !== caller.branchId) return false
       if (branchId && b.branchId !== branchId) return false
+      if (options?.onlyArchived) {
+        if (b.isActive !== false) return false
+      } else if (!options?.includeArchived) {
+        if (b.isActive === false) return false
+      }
       return true
     })
     .map((b) => {
@@ -590,6 +601,251 @@ export function setBatchEnrolledCount(batchId: string, count: number): void {
   if (b) {
     b.enrolledCount = count
     saveDemoData('batches', demoBatches)
+  }
+}
+
+export async function deleteBatch(
+  caller: UserContext,
+  batchId: string
+): Promise<{ success: boolean; message: string; action: 'archived' | 'deleted' }> {
+  authorize(caller, 'batch:delete', caller.branchType)
+
+  let batchName = batchId
+  let batchBranchId = ''
+  if (isDbAvailable()) {
+    try {
+      const existing = await prisma.batch.findUnique({
+        where: { id: batchId },
+        include: {
+          _count: {
+            select: {
+              enrollments: { where: { endDate: null } },
+            },
+          },
+        },
+      })
+      if (!existing) {
+        throw new RecordNotFoundError('Batch')
+      }
+
+      // Check manager's branch scope
+      assertBranchAccess(caller, existing.branchId, 'Batch')
+
+      batchName = existing.name
+      batchBranchId = existing.branchId
+
+      // Requirement: Do not allow deletion of active batches with currently enrolled students
+      if (existing._count.enrollments > 0) {
+        const count = existing._count.enrollments
+        throw new Error(
+          `Cannot delete batch "${batchName}" because it has ${count} actively enrolled cadet(s). Please transfer or remove students before deleting this batch.`
+        )
+      }
+
+      // Safe archival (soft delete) to preserve historical records, attendance, and coach history
+      await prisma.batch.update({
+        where: { id: batchId },
+        data: { isActive: false },
+      })
+
+      await logAudit({
+        actorId: caller.userId,
+        branchId: batchBranchId,
+        action: 'batch.archive',
+        entityType: 'Batch',
+        entityId: batchId,
+        before: { isActive: true },
+        after: { isActive: false },
+        reason: `Batch ${batchName} archived by ${caller.role}`,
+      })
+
+      return {
+        success: true,
+        action: 'archived',
+        message: `Batch "${batchName}" has been safely archived. Historical attendance and records have been preserved.`,
+      }
+    } catch (err: any) {
+      if (err instanceof RecordNotFoundError || err.message?.startsWith('Cannot delete batch')) {
+        throw err
+      }
+      markDbOffline()
+    }
+  }
+
+  // Demo fallback
+  const targets = demoBatches.filter((b) => b.id === batchId)
+  if (targets.length === 0) {
+    throw new RecordNotFoundError('Batch')
+  }
+  const target = targets[0]
+
+  // Assert branch access (Managers strictly cannot delete other branch batches)
+  assertBranchAccess(caller, target.branchId, 'Batch')
+
+  batchName = target.name
+  batchBranchId = target.branchId
+
+  if (target.enrolledCount > 0) {
+    throw new Error(
+      `Cannot delete batch "${batchName}" because it has ${target.enrolledCount} actively enrolled cadet(s). Please transfer or remove students before deleting this batch.`
+    )
+  }
+
+  demoBatches.forEach((b) => {
+    if (b.id === batchId) {
+      b.isActive = false
+    }
+  })
+  saveDemoData('batches', demoBatches)
+
+  await logAudit({
+    actorId: caller.userId,
+    branchId: batchBranchId,
+    action: 'batch.archive',
+    entityType: 'Batch',
+    entityId: batchId,
+    before: { isActive: true },
+    after: { isActive: false },
+    reason: `Batch ${batchName} archived by ${caller.role}`,
+  })
+
+  return {
+    success: true,
+    action: 'archived',
+    message: `Batch "${batchName}" has been safely archived. Historical attendance and records have been preserved.`,
+  }
+}
+
+export async function restoreBatch(
+  caller: UserContext,
+  batchId: string
+): Promise<{ success: boolean; message: string; batch: BatchSummary }> {
+  authorize(caller, 'batch:restore', caller.branchType)
+
+  let restoredBatch: BatchSummary | undefined
+  if (isDbAvailable()) {
+    try {
+      const existing = await prisma.batch.findUnique({
+        where: { id: batchId },
+        include: {
+          branch: { select: { id: true, code: true, name: true } },
+          coaches: {
+            where: { assignedTo: null },
+            include: { coach: { select: { id: true, name: true, loginId: true } } },
+          },
+          _count: {
+            select: {
+              enrollments: { where: { endDate: null } },
+            },
+          },
+        },
+      })
+      if (!existing) {
+        throw new RecordNotFoundError('Batch')
+      }
+
+      assertBranchAccess(caller, existing.branchId, 'Batch')
+
+      const updated = await prisma.batch.update({
+        where: { id: batchId },
+        data: { isActive: true },
+        include: {
+          branch: { select: { id: true, code: true, name: true } },
+          coaches: {
+            where: { assignedTo: null },
+            include: { coach: { select: { id: true, name: true, loginId: true } } },
+          },
+          _count: {
+            select: {
+              enrollments: { where: { endDate: null } },
+            },
+          },
+        },
+      })
+
+      const primaryCoach = updated.coaches.find((c) => c.isPrimary) || updated.coaches[0]
+      restoredBatch = {
+        id: updated.id,
+        branchId: updated.branchId,
+        branchName: updated.branch.name,
+        branchCode: updated.branch.code,
+        name: updated.name,
+        ageGroup: updated.ageGroup,
+        capacity: updated.capacity,
+        enrolledCount: updated._count.enrollments,
+        daysOfWeek: updated.daysOfWeek,
+        startTime: updated.startTime,
+        endTime: updated.endTime,
+        isActive: updated.isActive,
+        currentCoach: primaryCoach
+          ? {
+              id: primaryCoach.coach.id,
+              name: primaryCoach.coach.name,
+              loginId: primaryCoach.coach.loginId,
+              isPrimary: primaryCoach.isPrimary,
+            }
+          : null,
+        coachingStaff: updated.coaches.map((c) => ({
+          id: c.coach.id,
+          name: c.coach.name,
+          loginId: c.coach.loginId,
+          isPrimary: c.isPrimary,
+        })),
+        createdAt: updated.createdAt.toISOString(),
+      }
+
+      await logAudit({
+        actorId: caller.userId,
+        branchId: updated.branchId,
+        action: 'batch.restore',
+        entityType: 'Batch',
+        entityId: batchId,
+        before: { isActive: false },
+        after: { isActive: true },
+        reason: `Batch ${updated.name} restored by ${caller.role}`,
+      })
+
+      return {
+        success: true,
+        message: `Batch "${updated.name}" has been restored successfully.`,
+        batch: restoredBatch,
+      }
+    } catch (err: any) {
+      if (err instanceof RecordNotFoundError) throw err
+      markDbOffline()
+    }
+  }
+
+  const targets = demoBatches.filter((b) => b.id === batchId)
+  if (targets.length === 0) {
+    throw new RecordNotFoundError('Batch')
+  }
+  const target = targets[0]
+
+  assertBranchAccess(caller, target.branchId, 'Batch')
+
+  demoBatches.forEach((b) => {
+    if (b.id === batchId) {
+      b.isActive = true
+    }
+  })
+  saveDemoData('batches', demoBatches)
+
+  await logAudit({
+    actorId: caller.userId,
+    branchId: target.branchId,
+    action: 'batch.restore',
+    entityType: 'Batch',
+    entityId: batchId,
+    before: { isActive: false },
+    after: { isActive: true },
+    reason: `Batch ${target.name} restored by ${caller.role}`,
+  })
+
+  return {
+    success: true,
+    message: `Batch "${target.name}" has been restored successfully.`,
+    batch: target,
   }
 }
 

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
+import { QueryProvider } from '@/components/query-provider'
 import './globals.css'
 
 const inter = Inter({
@@ -28,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-        {children}
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   )

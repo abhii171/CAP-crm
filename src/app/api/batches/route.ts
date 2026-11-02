@@ -11,8 +11,13 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url)
     const branchId = searchParams.get('branchId') || undefined
+    const archived = searchParams.get('archived') === 'true' || searchParams.get('status') === 'archived'
+    const all = searchParams.get('status') === 'all'
 
-    const batches = await listBatches(user, branchId)
+    const batches = await listBatches(user, branchId, {
+      onlyArchived: archived,
+      includeArchived: all,
+    })
     return NextResponse.json({ success: true, batches })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: err.statusCode || 500 })

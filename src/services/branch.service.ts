@@ -75,12 +75,21 @@ const initialDemoBranches: BranchRecord[] = [
 // Persistent demo store
 const demoBranches: BranchRecord[] = loadDemoData('branches', initialDemoBranches)
 
-export async function listBranches(caller: UserContext): Promise<BranchRecord[]> {
+export async function listBranches(
+  caller: UserContext,
+  options?: { includeArchived?: boolean; onlyArchived?: boolean }
+): Promise<BranchRecord[]> {
   if (isDbAvailable()) {
     try {
       const where: any = {}
       if (caller.role !== 'ADMIN' && caller.branchId) {
         where.id = caller.branchId
+      }
+
+      if (options?.onlyArchived) {
+        where.isActive = false
+      } else if (!options?.includeArchived) {
+        where.isActive = true
       }
 
       const branches = await prisma.branch.findMany({
@@ -168,10 +177,15 @@ export async function listBranches(caller: UserContext): Promise<BranchRecord[]>
     }
   })
 
-  if (caller.role !== 'ADMIN') {
-    return branchesWithCounts.filter((b) => b.id === caller.branchId)
-  }
-  return branchesWithCounts
+  return branchesWithCounts.filter((b) => {
+    if (caller.role !== 'ADMIN' && b.id !== caller.branchId) return false
+    if (options?.onlyArchived) {
+      return b.isActive === false
+    } else if (!options?.includeArchived) {
+      return b.isActive !== false
+    }
+    return true
+  })
 }
 
 export async function createBranch(caller: UserContext, input: CreateBranchInput): Promise<BranchRecord> {
@@ -249,7 +263,12 @@ export async function createBranch(caller: UserContext, input: CreateBranchInput
       collectionRate: 100,
       createdAt: new Date().toISOString(),
     }
-    demoBranches.push(createdBranch)
+    const existingIdx = demoBranches.findIndex((b) => b.id === createdBranch.id || b.code === createdBranch.code)
+    if (existingIdx >= 0) {
+      demoBranches[existingIdx] = createdBranch
+    } else {
+      demoBranches.push(createdBranch)
+    }
     saveDemoData('branches', demoBranches)
   }
 
@@ -326,6 +345,180 @@ export async function getNextStudentCode(branchId: string): Promise<{ studentCod
   return {
     studentCode: `${target.code}-${String(target.studentSeq).padStart(6, '0')}`,
     branchCode: target.code,
+  }
+}
+
+export async function deleteBranch(
+  caller: UserContext,
+  branchId: string
+): Promise<{ success: boolean; message: string; action: 'archived' | 'deleted' }> {
+  authorize(caller, 'branch:delete')
+
+  let branchName = branchId
+  if (isDbAvailable()) {
+    try {
+      const existing = await prisma.branch.findUnique({
+        where: { id: branchId },
+        include: {
+          _count: {
+            select: {
+              users: true,
+              students: true,
+              batches: true,
+              payments: true,
+              sessions: true,
+              feeDues: true,
+            },
+          },
+        },
+      })
+      if (!existing) {
+        throw new RecordNotFoundError('Branch')
+      }
+      branchName = existing.name
+
+      // Always safe-archive (soft delete) to preserve historical business and financial records
+      await prisma.branch.update({
+        where: { id: branchId },
+        data: { isActive: false },
+      })
+
+      await logAudit({
+        actorId: caller.userId,
+        branchId,
+        action: 'branch.archive',
+        entityType: 'Branch',
+        entityId: branchId,
+        before: { isActive: true },
+        after: { isActive: false },
+        reason: `Branch ${branchName} (${existing.code}) archived by Admin`,
+      })
+
+      return {
+        success: true,
+        action: 'archived',
+        message: `Branch "${branchName}" has been safely archived. All historical business and student records have been preserved.`,
+      }
+    } catch (err: any) {
+      if (err instanceof RecordNotFoundError) throw err
+      markDbOffline()
+    }
+  }
+
+  // Demo fallback
+  const targets = demoBranches.filter((b) => b.id === branchId)
+  if (targets.length === 0) {
+    throw new RecordNotFoundError('Branch')
+  }
+  branchName = targets[0].name
+  demoBranches.forEach((b) => {
+    if (b.id === branchId) {
+      b.isActive = false
+    }
+  })
+  saveDemoData('branches', demoBranches)
+
+  await logAudit({
+    actorId: caller.userId,
+    branchId,
+    action: 'branch.archive',
+    entityType: 'Branch',
+    entityId: branchId,
+    before: { isActive: true },
+    after: { isActive: false },
+    reason: `Branch ${branchName} (${targets[0].code}) archived by Admin`,
+  })
+
+  return {
+    success: true,
+    action: 'archived',
+    message: `Branch "${branchName}" has been safely archived. All historical business and student records have been preserved.`,
+  }
+}
+
+export async function restoreBranch(
+  caller: UserContext,
+  branchId: string
+): Promise<{ success: boolean; message: string; branch: BranchRecord }> {
+  authorize(caller, 'branch:restore')
+
+  let restoredBranch: BranchRecord | undefined
+
+  if (isDbAvailable()) {
+    try {
+      const existing = await prisma.branch.findUnique({
+        where: { id: branchId },
+      })
+      if (!existing) {
+        throw new RecordNotFoundError('Branch')
+      }
+
+      const updated = await prisma.branch.update({
+        where: { id: branchId },
+        data: { isActive: true },
+      })
+
+      restoredBranch = {
+        id: updated.id,
+        code: updated.code,
+        name: updated.name,
+        type: updated.type as any,
+        city: updated.city,
+        address: updated.address,
+        studentSeq: updated.studentSeq,
+        isActive: updated.isActive,
+        createdAt: updated.createdAt.toISOString(),
+      }
+
+      await logAudit({
+        actorId: caller.userId,
+        branchId,
+        action: 'branch.restore',
+        entityType: 'Branch',
+        entityId: branchId,
+        before: { isActive: false },
+        after: { isActive: true },
+        reason: `Branch ${updated.name} (${updated.code}) restored by Admin`,
+      })
+
+      return {
+        success: true,
+        message: `Branch "${updated.name}" has been restored successfully.`,
+        branch: restoredBranch,
+      }
+    } catch (err: any) {
+      if (err instanceof RecordNotFoundError) throw err
+      markDbOffline()
+    }
+  }
+
+  const targets = demoBranches.filter((b) => b.id === branchId)
+  if (targets.length === 0) {
+    throw new RecordNotFoundError('Branch')
+  }
+  const target = targets[0]
+  demoBranches.forEach((b) => {
+    if (b.id === branchId) {
+      b.isActive = true
+    }
+  })
+  saveDemoData('branches', demoBranches)
+
+  await logAudit({
+    actorId: caller.userId,
+    branchId,
+    action: 'branch.restore',
+    entityType: 'Branch',
+    entityId: branchId,
+    before: { isActive: false },
+    after: { isActive: true },
+    reason: `Branch ${target.name} (${target.code}) restored by Admin`,
+  })
+
+  return {
+    success: true,
+    message: `Branch "${target.name}" has been restored successfully.`,
+    branch: target,
   }
 }
 

@@ -1,5 +1,5 @@
-import { createBatch, updateBatch, listBatches } from '../src/services/batch.service'
-import { UserContext, PermissionDeniedError } from '../src/lib/rbac'
+import { createBatch, updateBatch, listBatches, deleteBatch, restoreBatch } from '../src/services/batch.service'
+import { UserContext, PermissionDeniedError, RecordNotFoundError } from '../src/lib/rbac'
 
 console.log('🧪 Running Step 1.6 Batches & Coaches Automated Tests...')
 
@@ -129,8 +129,72 @@ async function runTests() {
     assert(err instanceof PermissionDeniedError, 'Franchise manager creating batch throws PermissionDeniedError')
   }
 
+  // Test 7: Prevent deletion of batch with active enrolled students
+  try {
+    await deleteBatch(ownedManager, 'batch-1') // batch-1 has enrolled cadets
+    assert(false, 'Batch with enrolled cadets MUST NOT be deleted')
+  } catch (err: any) {
+    assert(
+      err.message.includes('actively enrolled cadet(s)'),
+      'Deletion blocked when active students are enrolled in the batch'
+    )
+  }
+
+  // Test 8: Manager CANNOT delete batch of another branch
+  const otherBranchBatch = await createBatch(adminUser, {
+    branchId: 'branch-hbn',
+    name: 'HBN Evening Net Practice',
+    capacity: 15,
+    daysOfWeek: [2, 4],
+    startTime: '17:00',
+    endTime: '19:00',
+  })
+  try {
+    await deleteBatch(ownedManager, otherBranchBatch.id)
+    assert(false, 'Manager MUST NOT delete a batch belonging to another branch')
+  } catch (err) {
+    assert(err instanceof RecordNotFoundError, 'Cross-branch batch deletion throws RecordNotFoundError')
+  }
+
+  // Test 9: Franchise manager CANNOT delete batches
+  try {
+    await deleteBatch(franchiseManager, otherBranchBatch.id)
+    assert(false, 'Franchise manager MUST NOT delete batches')
+  } catch (err) {
+    assert(err instanceof PermissionDeniedError, 'Franchise manager deleting batch throws PermissionDeniedError')
+  }
+
+  // Test 10: Owned manager deletes old / inactive batch (0 enrolled students)
+  const emptyBatch = await createBatch(ownedManager, {
+    branchId: 'branch-kkp',
+    name: 'Old Monsoon Camp',
+    capacity: 10,
+    daysOfWeek: [0],
+    startTime: '07:00',
+    endTime: '09:00',
+  })
+  const deleteResult = await deleteBatch(ownedManager, emptyBatch.id)
+  assert(deleteResult.success === true, 'Owned manager successfully deleted empty batch')
+  assert(deleteResult.action === 'archived', 'Batch safely archived to preserve attendance history')
+
+  // Verify deleted batch is excluded from default active list
+  const activeBatches = await listBatches(ownedManager)
+  assert(!activeBatches.some((b) => b.id === emptyBatch.id), 'Deleted batch no longer appears in active batch list')
+
+  // Verify deleted batch appears in archived list
+  const archivedBatches = await listBatches(ownedManager, undefined, { onlyArchived: true })
+  assert(archivedBatches.some((b) => b.id === emptyBatch.id), 'Deleted batch appears in archived batches list')
+
+  // Test 11: Manager restores archived batch
+  const restoreResult = await restoreBatch(ownedManager, emptyBatch.id)
+  assert(restoreResult.success === true, 'Batch restored successfully')
+  const activeBatchesAfterRestore = await listBatches(ownedManager)
+  assert(activeBatchesAfterRestore.some((b) => b.id === emptyBatch.id), 'Restored batch reappears in active batch list')
+
   // Cleanup test batch so re-running tests is idempotent
   await updateBatch(ownedManager, newBatch.id, { isActive: false })
+  await deleteBatch(ownedManager, emptyBatch.id)
+  await deleteBatch(adminUser, otherBranchBatch.id)
 
   console.log('\n' + '='.repeat(50))
   console.log(`Step 1.6 Batches Test Results: ${passed} passed, ${failed} failed`)

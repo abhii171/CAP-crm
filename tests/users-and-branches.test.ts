@@ -1,4 +1,4 @@
-import { createBranch, listBranches } from '../src/services/branch.service'
+import { createBranch, listBranches, deleteBranch, restoreBranch } from '../src/services/branch.service'
 import { createUser, deactivateUser, reactivateUser, resetUserPassword, listUsers } from '../src/services/user.service'
 import { UserContext, PermissionDeniedError } from '../src/lib/rbac'
 
@@ -119,6 +119,33 @@ async function runTests() {
     resetResult.temporaryPassword.length >= 10,
     'Reset password generates new temporary password'
   )
+
+  // Test 8: Manager CANNOT delete branch (Security & RBAC check)
+  try {
+    await deleteBranch(ownedManager, newBranch.id)
+    assert(false, 'Manager MUST NOT be allowed to delete a branch')
+  } catch (err) {
+    assert(err instanceof PermissionDeniedError, 'Manager deleting branch throws PermissionDeniedError (403)')
+  }
+
+  // Test 9: Admin deletes/archives branch
+  const deleteResult = await deleteBranch(adminUser, newBranch.id)
+  assert(deleteResult.success === true, 'Admin successfully archived branch')
+  assert(deleteResult.action === 'archived', 'Branch safely archived to preserve data integrity')
+
+  // Verify deleted branch no longer appears in default active list
+  const activeBranches = await listBranches(adminUser)
+  assert(!activeBranches.some((b) => b.id === newBranch.id), 'Deleted branch no longer appears in active branch lists')
+
+  // Verify deleted branch appears in archived list
+  const archivedBranches = await listBranches(adminUser, { onlyArchived: true })
+  assert(archivedBranches.some((b) => b.id === newBranch.id), 'Deleted branch is visible in archived branches list')
+
+  // Test 10: Admin restores archived branch
+  const restoreResult = await restoreBranch(adminUser, newBranch.id)
+  assert(restoreResult.success === true, 'Admin successfully restored archived branch')
+  const activeBranchesAfterRestore = await listBranches(adminUser)
+  assert(activeBranchesAfterRestore.some((b) => b.id === newBranch.id), 'Restored branch reappears in active branch list')
 
   console.log('\n' + '='.repeat(50))
   console.log(`Step 1.5 Test Results: ${passed} passed, ${failed} failed`)

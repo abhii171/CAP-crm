@@ -18,6 +18,9 @@ import {
   Search,
   Check,
   Phone,
+  RotateCcw,
+  Archive,
+  AlertTriangle,
 } from 'lucide-react'
 
 interface Batch {
@@ -89,6 +92,8 @@ interface BranchOption {
 
 export default function AdminBatchesPage() {
   const [batches, setBatches] = useState<Batch[]>([])
+  const [archivedBatches, setArchivedBatches] = useState<Batch[]>([])
+  const [batchTab, setBatchTab] = useState<'active' | 'archived'>('active')
   const [coaches, setCoaches] = useState<CoachOption[]>([])
   const [branches, setBranches] = useState<BranchOption[]>([])
   const [loading, setLoading] = useState(true)
@@ -96,6 +101,22 @@ export default function AdminBatchesPage() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [filterBranch, setFilterBranch] = useState('')
+
+  // Batch Delete & Archive Modal State
+  const [deleteModalBatch, setDeleteModalBatch] = useState<Batch | null>(null)
+  const [isDeletingBatch, setIsDeletingBatch] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [restoringBatchId, setRestoringBatchId] = useState<string | null>(null)
+
+  // Toast notifications
+  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setToast({ type, message })
+    setTimeout(() => {
+      setToast(null)
+    }, 4500)
+  }
 
   // Coaching Staff Modal State
   const [reassignModal, setReassignModal] = useState<{
@@ -164,13 +185,68 @@ export default function AdminBatchesPage() {
   const fetchBatches = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/batches')
-      const data = await res.json()
-      if (data.success) {
-        setBatches(data.batches || [])
+      const [activeRes, archivedRes] = await Promise.all([
+        fetch('/api/batches'),
+        fetch('/api/batches?archived=true'),
+      ])
+      const activeData = await activeRes.json()
+      const archivedData = await archivedRes.json()
+
+      if (activeData.success) {
+        setBatches(activeData.batches || [])
       }
+      if (archivedData.success) {
+        setArchivedBatches(archivedData.batches || [])
+      }
+    } catch {
+      showToast('error', 'Failed to load batches.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleConfirmDeleteBatch = async () => {
+    if (!deleteModalBatch) return
+    setIsDeletingBatch(true)
+    setDeleteError(null)
+
+    try {
+      const res = await fetch(`/api/batches/${deleteModalBatch.id}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setDeleteError(data.error || 'Failed to delete batch')
+        return
+      }
+
+      showToast('success', data.message || `Batch "${deleteModalBatch.name}" safely deleted & archived.`)
+      setDeleteModalBatch(null)
+      await fetchBatches()
+    } catch {
+      setDeleteError('Network error while deleting batch. Please try again.')
+    } finally {
+      setIsDeletingBatch(false)
+    }
+  }
+
+  const handleRestoreBatch = async (batch: Batch) => {
+    setRestoringBatchId(batch.id)
+    try {
+      const res = await fetch(`/api/batches/${batch.id}/restore`, {
+        method: 'POST',
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        showToast('error', data.error || 'Failed to restore batch')
+        return
+      }
+      showToast('success', data.message || `Batch "${batch.name}" has been restored successfully.`)
+      await fetchBatches()
+    } catch {
+      showToast('error', 'Network error while restoring batch.')
+    } finally {
+      setRestoringBatchId(null)
     }
   }
 
@@ -540,6 +616,81 @@ export default function AdminBatchesPage() {
 
       {/* Main Content */}
       <main className="dashboard-container max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 md:py-8 space-y-4 sm:space-y-5 min-w-0">
+        {/* Toast Notification */}
+        {toast && (
+          <div
+            className={`p-3 rounded-md flex items-center justify-between text-xs font-semibold animate-in fade-in duration-200 border ${
+              toast.type === 'success'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                : 'bg-red-50 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {toast.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
+              )}
+              <span>{toast.message}</span>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="p-1 hover:opacity-75 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Section Tabs: Active Batches vs Archived Batches */}
+        <div className="flex items-center justify-between border-b border-[var(--border)] pb-2 gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setBatchTab('active')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                batchTab === 'active'
+                  ? 'bg-[var(--primary-600)] text-white shadow-xs'
+                  : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Active Batches</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  batchTab === 'active' ? 'bg-white/20 text-white' : 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)]'
+                }`}
+              >
+                {batches.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setBatchTab('archived')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                batchTab === 'archived'
+                  ? 'bg-[var(--primary-600)] text-white shadow-xs'
+                  : 'text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
+              }`}
+            >
+              <Archive className="w-3.5 h-3.5" />
+              <span>Archived Batches</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  batchTab === 'archived' ? 'bg-white/20 text-white' : 'bg-[var(--surface-2)] text-[var(--text-muted)] border border-[var(--border)]'
+                }`}
+              >
+                {archivedBatches.length}
+              </span>
+            </button>
+          </div>
+
+          <span className="text-[11px] text-[var(--text-muted)] hidden sm:inline">
+            {batchTab === 'active' ? 'Active scheduled training groups' : 'Archived batches (historical logs preserved)'}
+          </span>
+        </div>
+
         {/* Branch Filter & Stats Bar */}
         <div className="flex items-center justify-between gap-3 flex-wrap p-3.5 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)]">
           <div className="flex items-center gap-2 flex-wrap">
@@ -572,7 +723,9 @@ export default function AdminBatchesPage() {
           </div>
 
           <div className="text-xs text-[var(--text-muted)] font-medium">
-            Showing <strong className="text-[var(--text)]">{batches.filter((b) => !filterBranch || b.branchId === filterBranch).length}</strong> batch{batches.filter((b) => !filterBranch || b.branchId === filterBranch).length !== 1 ? 'es' : ''}
+            Showing <strong className="text-[var(--text)]">
+              {(batchTab === 'active' ? batches : archivedBatches).filter((b) => !filterBranch || b.branchId === filterBranch).length}
+            </strong> batch{(batchTab === 'active' ? batches : archivedBatches).filter((b) => !filterBranch || b.branchId === filterBranch).length !== 1 ? 'es' : ''}
             {filterBranch ? ` in ${branches.find((b) => b.id === filterBranch)?.name || 'this branch'}` : ' across all academy branches'}
           </div>
         </div>
@@ -582,34 +735,178 @@ export default function AdminBatchesPage() {
             <Loader2 className="w-8 h-8 animate-spin text-[var(--primary-600)]" />
             <p className="text-xs text-[var(--text-muted)] font-medium">Loading academy batches…</p>
           </div>
-        ) : batches.filter((b) => !filterBranch || b.branchId === filterBranch).length === 0 ? (
-          <div className="p-12 text-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)] bg-[var(--surface)] space-y-3">
-            <Users className="w-10 h-10 mx-auto text-[var(--text-muted)] opacity-50" />
-            <div className="space-y-1">
-              <h3 className="text-base font-bold text-[var(--text)]">No Batches in this Branch</h3>
-              <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
-                No training batches have been configured for this branch yet.
-              </p>
+        ) : batchTab === 'active' ? (
+          batches.filter((b) => !filterBranch || b.branchId === filterBranch).length === 0 ? (
+            <div className="p-12 text-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)] bg-[var(--surface)] space-y-3">
+              <Users className="w-10 h-10 mx-auto text-[var(--text-muted)] opacity-50" />
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-[var(--text)]">No Active Batches</h3>
+                <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
+                  No active training batches found for this branch filter.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (filterBranch) setBranchId(filterBranch)
+                  setIsModalOpen(true)
+                }}
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-md bg-[var(--primary-600)] hover:bg-[var(--primary-700)] text-white text-xs font-semibold shadow-xs cursor-pointer transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Create First Batch</span>
+              </button>
             </div>
-            <button
-              onClick={() => {
-                if (filterBranch) setBranchId(filterBranch)
-                setIsModalOpen(true)
-              }}
-              className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-md bg-[var(--primary-600)] hover:bg-[var(--primary-700)] text-white text-xs font-semibold shadow-xs cursor-pointer transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Create First Batch</span>
-            </button>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {batches.filter((b) => !filterBranch || b.branchId === filterBranch).map((batch) => {
+                const occupancyPct = Math.round((batch.enrolledCount / batch.capacity) * 100)
+                return (
+                  <div
+                    key={batch.id}
+                    className="p-5 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-4 flex flex-col justify-between hover:border-[var(--primary-600)]/40 transition-colors"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="text-base font-bold text-[var(--text)]">{batch.name}</h3>
+                          <span className="text-[11px] text-[var(--text-muted)] font-medium">
+                            {batch.branchName || (batch.branchId === 'branch-hbn' ? 'CPA Hitech City' : 'CPA Kukatpally')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {batch.ageGroup && (
+                            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[var(--primary-50)] text-[var(--primary-700)] border border-[var(--primary-600)]/20">
+                              {batch.ageGroup}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteError(null)
+                              setDeleteModalBatch(batch)
+                            }}
+                            className="p-1.5 rounded-md text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/40 transition-colors cursor-pointer"
+                            title={`Delete / Archive batch ${batch.name}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 space-y-2 text-xs text-[var(--text-muted)]">
+                        <div className="flex items-center gap-1.5 font-medium text-[var(--text)]">
+                          <Clock className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+                          <span>{batch.startTime} - {batch.endTime} IST</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+                          <div className="flex items-center gap-1">
+                            {DAY_NAMES.map((day, idx) => {
+                              const active = batch.daysOfWeek.includes(idx)
+                              return (
+                                <span
+                                  key={day}
+                                  className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                                    active
+                                      ? 'bg-[var(--primary-600)] text-white'
+                                      : 'text-[var(--text-muted)]/50'
+                                  }`}
+                                >
+                                  {day}
+                                </span>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 pt-1">
+                          <span className="text-[var(--text-muted)]">Staff:</span>
+                          <span className="font-semibold text-[var(--text)]">
+                            {batch.coachingStaff && batch.coachingStaff.length > 0
+                              ? batch.coachingStaff.map((c) => c.name).join(', ')
+                              : batch.currentCoach ? batch.currentCoach.name : 'Unassigned'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="pt-3 border-t border-[var(--border)] space-y-1.5 text-xs">
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-[var(--text-muted)]">Capacity</span>
+                          <span className="font-semibold text-[var(--text)] font-mono">
+                            {batch.enrolledCount} / {batch.capacity} Cadets ({occupancyPct}%)
+                          </span>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-[var(--primary-600)] transition-all"
+                            style={{ width: `${Math.min(occupancyPct, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Cadets Actions */}
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <button
+                          onClick={() => openCadetsModal(batch, 'enrolled')}
+                          className="py-1.5 px-2.5 rounded border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold text-[var(--text)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          title="View all students in this batch"
+                        >
+                          <Users className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+                          <span>Cadets ({batch.enrolledCount})</span>
+                        </button>
+                        <button
+                          onClick={() => openCadetsModal(batch, 'bulk_existing')}
+                          className="py-1.5 px-2.5 rounded bg-[var(--primary-600)] hover:bg-[var(--primary-700)] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                          title="Add multiple students to this batch"
+                        >
+                          <UserPlus className="w-3.5 h-3.5" />
+                          <span>+ Add Cadets</span>
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          fetchCoaches()
+                          setReassignError(null)
+                          setReassignModal({
+                            batch,
+                            selectedCoachId: (coaches.find((c) => !batch.coachingStaff?.some((cs) => cs.id === c.id)) || coaches[0])?.id || '',
+                            action: 'add_coach',
+                            isPrimary: (batch.coachingStaff?.length || 0) === 0,
+                          })
+                        }}
+                        className="w-full py-1.5 px-3 rounded border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold text-[var(--text)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <UserCheck className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+                        <span>Coaching Staff ({batch.coachingStaff?.length || (batch.currentCoach ? 1 : 0)})</span>
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {batches.filter((b) => !filterBranch || b.branchId === filterBranch).map((batch) => {
-              const occupancyPct = Math.round((batch.enrolledCount / batch.capacity) * 100)
-              return (
+          /* Tab 2: Archived Batches */
+          archivedBatches.filter((b) => !filterBranch || b.branchId === filterBranch).length === 0 ? (
+            <div className="p-12 text-center rounded-[var(--radius-md)] border border-dashed border-[var(--border)] bg-[var(--surface)] space-y-3">
+              <Archive className="w-10 h-10 mx-auto text-[var(--text-muted)] opacity-50" />
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-[var(--text)]">No Archived Batches</h3>
+                <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto">
+                  Batches that you archive or delete will appear here. Historical attendance and records are fully preserved and can be restored anytime.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {archivedBatches.filter((b) => !filterBranch || b.branchId === filterBranch).map((batch) => (
                 <div
                   key={batch.id}
-                  className="p-5 rounded-[var(--radius-md)] bg-[var(--surface)] border border-[var(--border)] shadow-xs space-y-4 flex flex-col justify-between hover:border-[var(--primary-600)]/40 transition-colors"
+                  className="p-5 rounded-[var(--radius-md)] bg-[var(--surface)] border border-dashed border-[var(--border)] shadow-xs space-y-4 flex flex-col justify-between opacity-85 hover:opacity-100 transition-all"
                 >
                   <div>
                     <div className="flex items-start justify-between">
@@ -619,108 +916,47 @@ export default function AdminBatchesPage() {
                           {batch.branchName || (batch.branchId === 'branch-hbn' ? 'CPA Hitech City' : 'CPA Kukatpally')}
                         </span>
                       </div>
-                      {batch.ageGroup && (
-                        <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[var(--primary-50)] text-[var(--primary-700)] border border-[var(--primary-600)]/20">
-                          {batch.ageGroup}
-                        </span>
-                      )}
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-700">
+                        ARCHIVED
+                      </span>
                     </div>
 
-                    <div className="mt-3 space-y-2 text-xs text-[var(--text-muted)]">
-                      <div className="flex items-center gap-1.5 font-medium text-[var(--text)]">
-                        <Clock className="w-3.5 h-3.5 text-[var(--primary-600)]" />
+                    <div className="mt-3 space-y-1.5 text-xs text-[var(--text-muted)]">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
                         <span>{batch.startTime} - {batch.endTime} IST</span>
                       </div>
-
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-[var(--primary-600)]" />
-                        <div className="flex items-center gap-1">
-                          {DAY_NAMES.map((day, idx) => {
-                            const active = batch.daysOfWeek.includes(idx)
-                            return (
-                              <span
-                                key={day}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                                  active
-                                    ? 'bg-[var(--primary-600)] text-white'
-                                    : 'text-[var(--text-muted)]/50'
-                                }`}
-                              >
-                                {day}
-                              </span>
-                            )
-                          })}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 pt-1">
-                        <span className="text-[var(--text-muted)]">Staff:</span>
-                        <span className="font-semibold text-[var(--text)]">
-                          {batch.coachingStaff && batch.coachingStaff.length > 0
-                            ? batch.coachingStaff.map((c) => c.name).join(', ')
-                            : batch.currentCoach ? batch.currentCoach.name : 'Unassigned'}
-                        </span>
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>{batch.daysOfWeek.map((d) => DAY_NAMES[d]).join(', ') || 'No days configured'}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="pt-3 border-t border-[var(--border)] space-y-1.5 text-xs">
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-[var(--text-muted)]">Capacity</span>
-                        <span className="font-semibold text-[var(--text)] font-mono">
-                          {batch.enrolledCount} / {batch.capacity} Cadets ({occupancyPct}%)
-                        </span>
-                      </div>
-                      <div className="w-full h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-[var(--primary-600)] transition-all"
-                          style={{ width: `${Math.min(occupancyPct, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Cadets Actions */}
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <button
-                        onClick={() => openCadetsModal(batch, 'enrolled')}
-                        className="py-1.5 px-2.5 rounded border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold text-[var(--text)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                        title="View all students in this batch"
-                      >
-                        <Users className="w-3.5 h-3.5 text-[var(--primary-600)]" />
-                        <span>Cadets ({batch.enrolledCount})</span>
-                      </button>
-                      <button
-                        onClick={() => openCadetsModal(batch, 'bulk_existing')}
-                        className="py-1.5 px-2.5 rounded bg-[var(--primary-600)] hover:bg-[var(--primary-700)] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                        title="Add multiple students to this batch"
-                      >
-                        <UserPlus className="w-3.5 h-3.5" />
-                        <span>+ Add Cadets</span>
-                      </button>
-                    </div>
+                  <div className="pt-3 border-t border-[var(--border)] flex items-center justify-between text-xs gap-2">
+                    <span className="text-[11px] text-[var(--text-muted)] italic">
+                      Preserved History
+                    </span>
 
                     <button
-                      onClick={() => {
-                        fetchCoaches()
-                        setReassignError(null)
-                        setReassignModal({
-                          batch,
-                          selectedCoachId: (coaches.find((c) => !batch.coachingStaff?.some((cs) => cs.id === c.id)) || coaches[0])?.id || '',
-                          action: 'add_coach',
-                          isPrimary: (batch.coachingStaff?.length || 0) === 0,
-                        })
-                      }}
-                      className="w-full py-1.5 px-3 rounded border border-[var(--border)] hover:bg-[var(--surface-2)] text-xs font-semibold text-[var(--text)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      type="button"
+                      disabled={restoringBatchId === batch.id}
+                      onClick={() => handleRestoreBatch(batch)}
+                      className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 font-semibold border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      title={`Restore ${batch.name}`}
                     >
-                      <UserCheck className="w-3.5 h-3.5 text-[var(--primary-600)]" />
-                      <span>Coaching Staff ({batch.coachingStaff?.length || (batch.currentCoach ? 1 : 0)})</span>
+                      {restoringBatchId === batch.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      )}
+                      <span>Restore Batch</span>
                     </button>
                   </div>
                 </div>
-              )
-            })}
-          </div>
+              ))}
+            </div>
+          )
         )}
       </main>
 
@@ -1561,6 +1797,126 @@ export default function AdminBatchesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* CONFIRM DELETE / ARCHIVE BATCH MODAL (ADMIN)             */}
+      {/* ======================================================== */}
+      {deleteModalBatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-xl w-full max-w-md p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-950/50 flex items-center justify-center text-red-600 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-base text-[var(--text)]">Delete Batch</h3>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  Safely remove or archive an old training batch.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteModalBatch(null)
+                  setDeleteError(null)
+                }}
+                className="text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-md bg-[var(--surface-2)] border border-[var(--border)] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[var(--text-muted)]">Batch Name</span>
+                {deleteModalBatch.ageGroup && (
+                  <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--border)]">
+                    {deleteModalBatch.ageGroup}
+                  </span>
+                )}
+              </div>
+              <p className="font-bold text-sm text-[var(--text)]">{deleteModalBatch.name}</p>
+              <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-2 pt-1 border-t border-[var(--border)]">
+                <span>{deleteModalBatch.branchName || (deleteModalBatch.branchId === 'branch-hbn' ? 'CPA Hitech City' : 'CPA Kukatpally')}</span>
+                <span>·</span>
+                <span>{deleteModalBatch.startTime} - {deleteModalBatch.endTime}</span>
+                <span>·</span>
+                <span className={deleteModalBatch.enrolledCount > 0 ? 'font-semibold text-amber-600 dark:text-amber-400' : ''}>
+                  {deleteModalBatch.enrolledCount} active cadets enrolled
+                </span>
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 rounded-md bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 text-red-700 dark:text-red-300 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            {deleteModalBatch.enrolledCount > 0 ? (
+              <div className="p-3 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-200 text-xs space-y-1">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                  <span>Active Cadets Enrolled ({deleteModalBatch.enrolledCount})</span>
+                </p>
+                <p className="text-[11px] leading-relaxed">
+                  This batch cannot be deleted while cadets are actively enrolled in it. Please transfer or remove students before deleting this batch.
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 text-blue-800 dark:text-blue-200 text-xs space-y-1">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-blue-600" />
+                  <span>Preserve Historical Records</span>
+                </p>
+                <p className="text-[11px] leading-relaxed">
+                  Historical attendance records and coaching history are safely preserved in academy archives. This batch will be moved to the <strong>Archived Batches</strong> tab and can be restored if needed.
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={isDeletingBatch}
+                onClick={() => {
+                  setDeleteModalBatch(null)
+                  setDeleteError(null)
+                }}
+                className="h-9 px-3 rounded-md border border-[var(--border)] text-[var(--text)] text-xs font-semibold hover:bg-[var(--surface-2)] cursor-pointer"
+              >
+                Cancel
+              </button>
+              {deleteModalBatch.enrolledCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const b = deleteModalBatch
+                    setDeleteModalBatch(null)
+                    setDeleteError(null)
+                    openCadetsModal(b, 'enrolled')
+                  }}
+                  className="h-9 px-4 rounded-md bg-[var(--primary-600)] hover:bg-[var(--primary-700)] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Manage Cadets First</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isDeletingBatch}
+                  onClick={handleConfirmDeleteBatch}
+                  className="h-9 px-4 rounded-md bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {isDeletingBatch ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  <span>Confirm Delete / Archive</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}

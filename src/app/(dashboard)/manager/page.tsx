@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { DashboardHeader } from '@/components/dashboard-header'
 import {
   Users,
@@ -56,116 +57,72 @@ interface ManagerStats {
   }>
 }
 
-export default function ManagerPage() {
-  const [stats, setStats] = useState<ManagerStats>({
-    branchName: 'CPA Branch',
-    branchId: 'branch-kkp',
-    branchCode: 'KKP',
-    branchType: 'OWNED',
-    cadetsCount: 0,
-    batchesCount: 0,
-    coachesCount: 0,
-    outstandingPaise: 0,
-    todaySessionsCount: 0,
-    unmarkedSessionsCount: 0,
-    unreadInboxCount: 0,
-    todayCashPaise: 0,
-    todayReceiptCount: 0,
-    isDayClosed: false,
-    recentLogs: [],
-    batches: [],
-  })
-  const [loading, setLoading] = useState(true)
+const DEFAULT_STATS: ManagerStats = {
+  branchName: 'CPA Branch',
+  branchId: 'branch-kkp',
+  branchCode: 'KKP',
+  branchType: 'OWNED',
+  cadetsCount: 0,
+  batchesCount: 0,
+  coachesCount: 0,
+  outstandingPaise: 0,
+  todaySessionsCount: 0,
+  unmarkedSessionsCount: 0,
+  unreadInboxCount: 0,
+  todayCashPaise: 0,
+  todayReceiptCount: 0,
+  isDayClosed: false,
+  recentLogs: [],
+  batches: [],
+}
 
-  const fetchLiveData = async () => {
-    setLoading(true)
-    try {
+export default function ManagerPage() {
+  const {
+    data: stats = DEFAULT_STATS,
+    isLoading: loading,
+    refetch,
+  } = useQuery<ManagerStats>({
+    queryKey: ['manager-stats'],
+    queryFn: async () => {
       const today = new Date().toISOString().split('T')[0]
-      const [
-        meRes,
-        branchesRes,
-        studentsRes,
-        batchesRes,
-        coachesRes,
-        dailyCloseRes,
-        sessionsRes,
-        inboxRes,
-        auditRes,
-      ] = await Promise.all([
-        fetch('/api/auth/me').catch(() => null),
-        fetch('/api/branches').catch(() => null),
-        fetch('/api/students').catch(() => null),
-        fetch('/api/batches').catch(() => null),
-        fetch('/api/users?role=COACH').catch(() => null),
-        fetch(`/api/payments/daily-summary?businessDate=${today}`).catch(() => null),
-        fetch(`/api/attendance/sessions?date=${today}`).catch(() => null),
-        fetch('/api/whatsapp/inbox?status=UNREAD').catch(() => null),
-        fetch('/api/audit?limit=6').catch(() => null),
+      const [dashRes, batchesRes, coachesRes, dailyCloseRes, inboxRes, auditRes] = await Promise.all([
+        fetch('/api/dashboard/manager').then((r) => r.json()).catch(() => null),
+        fetch('/api/batches').then((r) => r.json()).catch(() => null),
+        fetch('/api/users?role=COACH').then((r) => r.json()).catch(() => null),
+        fetch(`/api/payments/daily-summary?businessDate=${today}`).then((r) => r.json()).catch(() => null),
+        fetch('/api/whatsapp/inbox?status=UNREAD').then((r) => r.json()).catch(() => null),
+        fetch('/api/audit?limit=6').then((r) => r.json()).catch(() => null),
       ])
 
-      const meData = meRes ? await meRes.json().catch(() => ({})) : {}
-      const branchesData = branchesRes ? await branchesRes.json().catch(() => ({})) : {}
-      const studentsData = studentsRes ? await studentsRes.json().catch(() => ({})) : {}
-      const batchesData = batchesRes ? await batchesRes.json().catch(() => ({})) : {}
-      const coachesData = coachesRes ? await coachesRes.json().catch(() => ({})) : {}
-      const dailyData = dailyCloseRes ? await dailyCloseRes.json().catch(() => ({})) : {}
-      const sessionsData = sessionsRes ? await sessionsRes.json().catch(() => ({})) : {}
-      const inboxData = inboxRes ? await inboxRes.json().catch(() => ({})) : {}
-      const auditData = auditRes ? await auditRes.json().catch(() => ({})) : {}
+      const dash = dashRes?.dashboard
+      const branch = dash?.branch || {}
+      const batches = batchesRes?.batches || (Array.isArray(batchesRes) ? batchesRes : [])
+      const coaches = coachesRes?.users || []
+      const daily = dailyCloseRes?.summary || {}
+      const inboxItems = inboxRes?.messages || []
+      const logs = auditRes?.logs || []
 
-      const user = meData.user || {}
-      const branches = branchesData.branches || (Array.isArray(branchesData) ? branchesData : [])
-      const branchRecord = branches.find((b: any) => b.id === user.branchId) || branches[0] || {}
-
-      const branchName = branchRecord.name || user.branchName || 'CPA Academy Branch'
-      const branchCode = branchRecord.code || 'KKP'
-      const branchType = (branchRecord.type as 'OWNED' | 'FRANCHISE') || (user.branchId === 'branch-hbn' ? 'FRANCHISE' : 'OWNED')
-
-      const students = studentsData.students || (Array.isArray(studentsData) ? studentsData : [])
-      const batches = batchesData.batches || (Array.isArray(batchesData) ? batchesData : [])
-      const coaches = coachesData.users || []
-      const sessions = sessionsData.sessions || []
-      const inboxItems = inboxData.messages || []
-      const logs = auditData.logs || []
-
-      const unmarked = sessions.filter(
-        (s: any) => s.status !== 'CANCELLED' && !s.attendanceSubmittedAt
-      ).length
-
-      // Calculate branch total outstanding dues
-      const totalOutstanding = students.reduce(
-        (acc: number, s: any) => acc + (s.outstandingDuesPaise || 0),
-        0
-      )
-
-      setStats({
-        branchName,
-        branchId: user.branchId || branchRecord.id || 'branch-kkp',
-        branchCode,
-        branchType,
-        cadetsCount: students.length,
-        batchesCount: batches.length,
+      return {
+        branchName: branch.name || 'CPA Academy Branch',
+        branchId: branch.id || 'branch-kkp',
+        branchCode: branch.code || 'KKP',
+        branchType: (branch.type as 'OWNED' | 'FRANCHISE') || 'OWNED',
+        cadetsCount: dash?.operations?.activeCadetsCount || 0,
+        batchesCount: batches.length || dash?.operations?.batchesCount || 0,
         coachesCount: coaches.length,
-        outstandingPaise: totalOutstanding,
-        todaySessionsCount: sessions.length,
-        unmarkedSessionsCount: unmarked,
+        outstandingPaise: dash?.financials?.outstandingPaise || 0,
+        todaySessionsCount: dash?.operations?.todaySessionsCount || 0,
+        unmarkedSessionsCount: dash?.operations?.unmarkedSessionsCount || 0,
         unreadInboxCount: inboxItems.length,
-        todayCashPaise: dailyData.summary?.expectedCashPaise || 0,
-        todayReceiptCount: dailyData.summary?.receiptCount || 0,
-        isDayClosed: dailyData.summary?.isClosed || false,
+        todayCashPaise: daily.expectedCashPaise || dash?.financials?.collectionsCashPaise || 0,
+        todayReceiptCount: daily.receiptCount || 0,
+        isDayClosed: daily.isClosed || false,
         recentLogs: logs.slice(0, 5),
         batches: batches.slice(0, 6),
-      })
-    } catch (err) {
-      console.error('Failed to load manager dashboard data:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchLiveData()
-  }, [])
+      }
+    },
+    staleTime: 60 * 1000, // 60s instant cache
+  })
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
@@ -192,7 +149,7 @@ export default function ManagerPage() {
                 {stats.branchType === 'OWNED' ? 'Owned Facility' : 'Franchise Partner'}
               </span>
               <button
-                onClick={fetchLiveData}
+                onClick={() => refetch()}
                 className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors ml-1 shrink-0"
                 title="Refresh Live Data"
               >

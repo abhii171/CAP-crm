@@ -165,6 +165,26 @@ assert(
   'Emergency phone is visible to coach strictly during live session'
 )
 
+// ── Test 5: Branch & Batch Deletion RBAC ──────────────────────
+console.log('\n[Test Suite 5: Branch & Batch Deletion Permissions]')
+// Admin can delete and restore any branch
+assert(can(adminUser, 'branch:delete'), 'Admin CAN delete/archive any branch')
+assert(can(adminUser, 'branch:restore'), 'Admin CAN restore any branch')
+
+// Manager CANNOT delete or restore branches
+assert(!can(ownedManager, 'branch:delete'), 'Manager CANNOT delete/archive a branch')
+assert(!can(ownedManager, 'branch:restore'), 'Manager CANNOT restore a branch')
+assert(!can(franchiseManager, 'branch:delete'), 'Franchise Manager CANNOT delete/archive a branch')
+assert(!can(coachUser, 'branch:delete'), 'Coach CANNOT delete/archive a branch')
+
+// Batch deletion
+assert(can(adminUser, 'batch:delete'), 'Admin CAN delete batches')
+assert(can(adminUser, 'batch:restore'), 'Admin CAN restore batches')
+assert(can(ownedManager, 'batch:delete'), 'Owned branch manager CAN delete batches in own branch')
+assert(can(ownedManager, 'batch:restore'), 'Owned branch manager CAN restore batches in own branch')
+assert(!can(franchiseManager, 'batch:delete'), 'Franchise manager CANNOT delete batches')
+assert(!can(coachUser, 'batch:delete'), 'Coach CANNOT delete batches')
+
 // ── Final Test Summary ────────────────────────────────────────
 console.log('\n' + '='.repeat(50))
 console.log(`Results: ${passed} passed, ${failed} failed`)
