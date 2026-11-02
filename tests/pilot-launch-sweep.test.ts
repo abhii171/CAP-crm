@@ -193,7 +193,9 @@ async function runPilotLaunchSweep() {
   assert(restoredDue?.status === 'UNPAID', 'Due status accurately restored to UNPAID after payment reversal')
 
   console.log('\n--- Phase 1.5: Online Razorpay Webhooks & Idempotency ---')
-  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || 'cpa_webhook_secret_key_demo_2026'
+  process.env.RAZORPAY_WEBHOOK_SECRET =
+    process.env.RAZORPAY_WEBHOOK_SECRET || 'test_razorpay_webhook_secret_key_32chars'
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET
 
   const onlinePayload = JSON.stringify({
     event: 'payment.captured',

@@ -266,6 +266,40 @@ export async function createBranch(caller: UserContext, input: CreateBranchInput
   return createdBranch
 }
 
+export async function getBranchById(caller: UserContext, branchId: string): Promise<BranchRecord> {
+  assertBranchAccess(caller, branchId, 'Branch')
+
+  if (isDbAvailable()) {
+    try {
+      const b = await prisma.branch.findUnique({
+        where: { id: branchId },
+      })
+      if (b) {
+        return {
+          id: b.id,
+          code: b.code,
+          name: b.name,
+          type: b.type as any,
+          city: b.city,
+          address: b.address,
+          studentSeq: b.studentSeq,
+          isActive: b.isActive,
+          createdAt: b.createdAt.toISOString(),
+        }
+      }
+    } catch {
+      markDbOffline()
+    }
+  }
+
+  const branches = await listBranches(caller)
+  const target = branches.find((b) => b.id === branchId)
+  if (!target) {
+    throw new RecordNotFoundError('Branch')
+  }
+  return target
+}
+
 export async function getNextStudentCode(branchId: string): Promise<{ studentCode: string; branchCode: string }> {
   if (isDbAvailable()) {
     try {

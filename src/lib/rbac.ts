@@ -69,6 +69,21 @@ export type Action =
   // System & Backups (Step 1.17)
   | 'backup:manage'
 
+  // Phase 2: Enquiries, Follow-ups, Trials & Flags (Touchpoint T1)
+  | 'enquiry:create'
+  | 'enquiry:read'
+  | 'enquiry:update'
+  | 'enquiry:change_stage'
+  | 'enquiry:assign'
+  | 'enquiry:mark_lost'
+  | 'enquiry:convert'
+  | 'enquiry:export'
+  | 'enquiry:anonymise'
+  | 'followup:manage'
+  | 'trial:manage'
+  | 'trial:view_own_batches'
+  | 'flags:manage'
+
 export class SecurityError extends Error {
   public statusCode: number
   constructor(message: string, statusCode = 403) {
@@ -154,7 +169,24 @@ export function can(user: UserContext, action: Action, targetBranchType?: Branch
       case 'audit:view':
       case 'report:view':
       case 'report:export':
+      // Phase 2: Enquiry management (D-02: both Owned and Franchise managers for own branch)
+      case 'enquiry:create':
+      case 'enquiry:read':
+      case 'enquiry:update':
+      case 'enquiry:change_stage':
+      case 'enquiry:assign':
+      case 'enquiry:mark_lost':
+      case 'enquiry:convert':
+      case 'enquiry:export':
+      case 'followup:manage':
+      case 'trial:manage':
+      case 'trial:view_own_batches':
         return true
+
+      // Admin-only operations forbidden for managers
+      case 'enquiry:anonymise':
+      case 'flags:manage':
+        return false
 
       default:
         return false
@@ -168,6 +200,8 @@ export function can(user: UserContext, action: Action, targetBranchType?: Branch
       case 'attendance:mark':
       case 'attendance:edit_recent':
       case 'attendance:view':
+      case 'trial:view_own_batches':
+        return true
       case 'batch:view':
       case 'student:view':
         return true

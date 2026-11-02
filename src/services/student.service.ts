@@ -551,10 +551,11 @@ export async function getStudentContactForAlert(
 
   const match = demoStudents.find((s) => s.id === studentId)
   if (match) {
+    const seed = initialDemoStudents.find((s) => s.id === studentId)
     return {
       name: match.name,
-      guardianId: match.guardian?.id || `grd-${match.id}`,
-      whatsappNumber: match.guardian?.whatsappNumber || match.guardianPhone,
+      guardianId: match.guardian?.id || seed?.guardian?.id || `grd-${match.id}`,
+      whatsappNumber: match.guardian?.whatsappNumber || match.guardianPhone || seed?.guardian?.whatsappNumber,
     }
   }
   return null

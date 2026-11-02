@@ -1,4 +1,5 @@
-# WORKFLOWS.md — CPA Cricket Academy CRM
+
+=# WORKFLOWS.md — CPA Cricket Academy CRM
 
 Step-by-step business processes: who does what, what the system does, which WhatsApp messages go out, what changes status, and what happens when something fails.
 

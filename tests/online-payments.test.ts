@@ -13,7 +13,7 @@ import { admitStudent } from '../src/services/student.service'
 import { UserContext, PermissionDeniedError, RecordNotFoundError } from '../src/lib/rbac'
 import { listMessages } from '../src/services/whatsapp.service'
 
-console.log('🧪 Running Step 1.13 Online Payments Automated Tests...')
+console.log('Running Step 1.13 Online Payments Automated Tests...')
 
 let passed = 0
 let failed = 0
@@ -59,7 +59,9 @@ const coachArjun: UserContext = {
   branchType: 'OWNED',
 }
 
-const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || 'cpa_webhook_secret_key_demo_2026'
+process.env.RAZORPAY_WEBHOOK_SECRET =
+  process.env.RAZORPAY_WEBHOOK_SECRET || 'test_razorpay_secret_key_at_least_32_characters'
+const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET
 
 function generateSignature(payload: string): string {
   return crypto.createHmac('sha256', WEBHOOK_SECRET).update(payload).digest('hex')
@@ -226,14 +228,19 @@ async function runTests() {
 
   // Test 7: Missing student reference routes to Unmatched Payments Queue
   const unmatchedGatewayId = `pay_unknown_${Date.now()}`
+  const unmatchedPayload = {
+    id: unmatchedGatewayId,
+    amount: 250000,
+    notes: { payerName: 'Unknown Guardian' },
+    email: 'parent@unknown.com',
+    contact: '+919999888877',
+  }
+  const unmatchedRaw = JSON.stringify(unmatchedPayload)
+  const unmatchedSig = generateSignature(unmatchedRaw)
   const unmatchedResult = await processOnlinePaymentWebhook({
-    payload: {
-      id: unmatchedGatewayId,
-      amount: 250000,
-      notes: { payerName: 'Unknown Guardian' },
-      email: 'parent@unknown.com',
-      contact: '+919999888877',
-    },
+    payload: unmatchedPayload,
+    signature: unmatchedSig,
+    rawBody: unmatchedRaw,
   })
 
   assert(

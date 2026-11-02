@@ -145,6 +145,12 @@ model Branch {
   messages       Message[]
   notices        Notice[]
   auditLogs      AuditLog[]
+
+  // Phase 2 back-relations (creates no SQL)
+  p2Enquiries Enquiry[] @relation("EnquiryBranch")
+  p2NotificationEvents NotificationEvent[] @relation("NotificationEventBranch")
+  p2Metrics MetricDailyBranch[] @relation("MetricBranch")
+  p2ReconciliationRuns MetricReconciliationRun[] @relation("ReconBranch")
 }
 
 model User {
@@ -182,6 +188,19 @@ model User {
   messagesSent        Message[]
   noticesCreated      Notice[]
   auditLogs           AuditLog[]
+
+  // Phase 2 back-relations (creates no SQL)
+  p2EnquiriesAssigned Enquiry[]             @relation("EnquiryAssignedTo")
+  p2EnquiriesCreated  Enquiry[]             @relation("EnquiryCreatedBy")
+  p2StageChanges      EnquiryStageHistory[] @relation("StageHistoryChangedBy")
+  p2FollowUpsDone     EnquiryFollowUp[]     @relation("FollowUpDoneBy")
+  p2FollowUpsCreated  EnquiryFollowUp[]     @relation("FollowUpCreatedBy")
+  p2ConsentsRecorded  EnquiryConsent[]      @relation("ConsentRecordedBy")
+  p2TrialOutcomesMarked TrialSession[]      @relation("TrialOutcomeMarker")
+  p2TrialsCreated       TrialSession[]      @relation("TrialCreatedBy")
+  p2NotificationsReceived Notification[]    @relation("NotificationRecipient")
+  p2NotificationPreferences NotificationPreference[] @relation("NotificationPrefUser")
+  p2NotificationSettings NotificationUserSetting? @relation("NotificationSettingUser")
 
   @@index([branchId, role])
 }
@@ -280,6 +299,9 @@ model Student {
   paymentLinks PaymentLink[]
   messages     Message[]
 
+  // Phase 2 back-relations (creates no SQL)
+  p2SourceEnquiry Enquiry? @relation("EnquiryConvertedStudent")
+
   @@index([branchId, status])
   @@index([guardianId])
   @@index([branchId, name])
@@ -306,6 +328,7 @@ model Batch {
   coaches     BatchCoach[]
   enrollments Enrollment[]
   sessions    Session[]
+  trials      TrialSession[] @relation("TrialBatch")
 
   @@unique([branchId, name])
   @@index([branchId, isActive])
@@ -653,3 +676,324 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([actorId, createdAt])
 }
+
+// ---------------------------------------------------------------- Phase 2 Platform
+
+model FeatureFlag {
+  id              String   @id @default(cuid())
+  key             String
+  scopeKey        String   @map("scope_key") // "global" or the branch id
+  enabled         Boolean  @default(false)
+  updatedByUserId String?  @map("updated_by_user_id")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([key, scopeKey])
+  @@map("feature_flags")
+}
+
+// ---------------------------------------------------------------- Phase 2 Enquiries
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  TRIAL_SCHEDULED
+  TRIAL_DONE
+  CONVERTED
+  LOST
+}
+
+enum EnquirySource {
+  WALK_IN
+  PHONE
+  WEBSITE
+  REFERRAL
+  SOCIAL_MEDIA
+  OTHER
+}
+
+enum EnquiryCreatedVia {
+  MANUAL
+  WEBSITE_FORM
+}
+
+enum FollowUpChannel {
+  CALL
+  WHATSAPP
+  VISIT
+}
+
+enum ConsentChannel {
+  WHATSAPP
+}
+
+enum ConsentCaptureMethod {
+  FORM_CHECKBOX
+  STAFF_RECORDED
+}
+
+enum TrialStatus {
+  SCHEDULED
+  ATTENDED
+  NO_SHOW
+  CANCELLED
+}
+
+enum NotificationSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum ReconciliationStatus {
+  OK
+  MISMATCH
+}
+
+model LostReason {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  label     String
+  sortOrder Int       @default(0) @map("sort_order")
+  active    Boolean   @default(true)
+  enquiries Enquiry[]
+
+  @@map("lost_reasons")
+}
+
+model Enquiry {
+  id                 String            @id @default(cuid())
+  branchId           String            @map("branch_id")
+  childName          String            @map("child_name")
+  guardianName       String?           @map("guardian_name")
+  phone              String
+  phoneNormalized    String            @map("phone_normalized")
+  email              String?
+  childAgeYears      Int?              @map("child_age_years")
+  interest           String?
+  source             EnquirySource
+  sourceDetail       String?           @map("source_detail")
+  createdVia         EnquiryCreatedVia @default(MANUAL) @map("created_via")
+  status             EnquiryStatus     @default(NEW)
+  assignedToUserId   String?           @map("assigned_to_user_id")
+  lostReasonId       String?           @map("lost_reason_id")
+  lostNote           String?           @map("lost_note")
+  nextFollowUpAt     DateTime?         @map("next_follow_up_at")
+  lastContactedAt    DateTime?         @map("last_contacted_at")
+  possibleDuplicate  Boolean           @default(false) @map("possible_duplicate")
+  mergedIntoId       String?           @map("merged_into_id")
+  convertedStudentId String?           @unique @map("converted_student_id")
+  convertedAt        DateTime?         @map("converted_at")
+  createdByUserId    String?           @map("created_by_user_id")
+  anonymizedAt       DateTime?         @map("anonymized_at")
+  version            Int               @default(1)
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  branch           Branch                @relation("EnquiryBranch", fields: [branchId], references: [id])
+  assignedTo       User?                 @relation("EnquiryAssignedTo", fields: [assignedToUserId], references: [id])
+  createdBy        User?                 @relation("EnquiryCreatedBy", fields: [createdByUserId], references: [id])
+  convertedStudent Student?              @relation("EnquiryConvertedStudent", fields: [convertedStudentId], references: [id])
+  lostReason       LostReason?           @relation(fields: [lostReasonId], references: [id])
+  mergedInto       Enquiry?              @relation("EnquiryMerge", fields: [mergedIntoId], references: [id])
+  mergedFrom       Enquiry[]             @relation("EnquiryMerge")
+  stageHistory     EnquiryStageHistory[]
+  followUps        EnquiryFollowUp[]
+  consents         EnquiryConsent[]
+  trials           TrialSession[]
+
+  @@index([branchId, status])
+  @@index([branchId, assignedToUserId, status])
+  @@index([assignedToUserId, nextFollowUpAt])
+  @@index([phoneNormalized])
+  @@index([branchId, createdAt])
+  @@index([source, createdAt])
+  @@map("enquiries")
+}
+
+model EnquiryStageHistory {
+  id              String         @id @default(cuid())
+  enquiryId       String         @map("enquiry_id")
+  fromStatus      EnquiryStatus? @map("from_status")
+  toStatus        EnquiryStatus  @map("to_status")
+  changedByUserId String?        @map("changed_by_user_id")
+  note            String?
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  enquiry   Enquiry @relation(fields: [enquiryId], references: [id])
+  changedBy User?   @relation("StageHistoryChangedBy", fields: [changedByUserId], references: [id])
+
+  @@index([enquiryId, createdAt])
+  @@map("enquiry_stage_history")
+}
+
+model EnquiryFollowUp {
+  id              String          @id @default(cuid())
+  enquiryId       String          @map("enquiry_id")
+  dueAt           DateTime        @map("due_at")
+  channel         FollowUpChannel
+  note            String?
+  outcome         String?
+  doneAt          DateTime?       @map("done_at")
+  doneByUserId    String?         @map("done_by_user_id")
+  cancelledAt     DateTime?       @map("cancelled_at")
+  createdByUserId String          @map("created_by_user_id")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  enquiry   Enquiry @relation(fields: [enquiryId], references: [id])
+  doneBy    User?   @relation("FollowUpDoneBy", fields: [doneByUserId], references: [id])
+  createdBy User    @relation("FollowUpCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@index([enquiryId, doneAt])
+  @@index([dueAt])
+  @@map("enquiry_follow_ups")
+}
+
+model EnquiryConsent {
+  id               String               @id @default(cuid())
+  enquiryId        String               @map("enquiry_id")
+  channel          ConsentChannel
+  grantedAt        DateTime             @map("granted_at")
+  captureMethod    ConsentCaptureMethod @map("capture_method")
+  textVersion      String               @map("text_version")
+  recordedByUserId String?              @map("recorded_by_user_id")
+  revokedAt        DateTime?            @map("revoked_at")
+  createdAt        DateTime             @default(now()) @map("created_at")
+
+  enquiry    Enquiry @relation(fields: [enquiryId], references: [id])
+  recordedBy User?   @relation("ConsentRecordedBy", fields: [recordedByUserId], references: [id])
+
+  @@index([enquiryId, channel, createdAt])
+  @@map("enquiry_consents")
+}
+
+model TrialSession {
+  id                    String      @id @default(cuid())
+  enquiryId             String      @map("enquiry_id")
+  batchId               String      @map("batch_id")
+  sessionDate           DateTime    @map("session_date") @db.Date
+  status                TrialStatus @default(SCHEDULED)
+  outcomeMarkedByUserId String?     @map("outcome_marked_by_user_id")
+  outcomeMarkedAt       DateTime?   @map("outcome_marked_at")
+  note                  String?
+  createdByUserId       String      @map("created_by_user_id")
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
+
+  enquiry       Enquiry @relation(fields: [enquiryId], references: [id])
+  batch         Batch   @relation("TrialBatch", fields: [batchId], references: [id])
+  outcomeMarker User?   @relation("TrialOutcomeMarker", fields: [outcomeMarkedByUserId], references: [id])
+  createdBy     User    @relation("TrialCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@unique([enquiryId, batchId, sessionDate])
+  @@index([batchId, sessionDate])
+  @@index([enquiryId])
+  @@map("trial_sessions")
+}
+
+// ---------------------------------------------------------------- Phase 2 Notifications
+
+model NotificationEvent {
+  id        String               @id @default(cuid())
+  type      String
+  branchId  String?              @map("branch_id")
+  dedupeKey String               @unique @map("dedupe_key")
+  severity  NotificationSeverity @default(INFO)
+  payload   Json                 // ids and counts only; no personal data
+  createdAt DateTime             @default(now()) @map("created_at")
+
+  branch        Branch?        @relation("NotificationEventBranch", fields: [branchId], references: [id])
+  notifications Notification[]
+
+  @@index([type, createdAt])
+  @@map("notification_events")
+}
+
+model Notification {
+  id              String    @id @default(cuid())
+  eventId         String    @map("event_id")
+  recipientUserId String    @map("recipient_user_id")
+  readAt          DateTime? @map("read_at")
+  dismissedAt     DateTime? @map("dismissed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  event     NotificationEvent @relation(fields: [eventId], references: [id])
+  recipient User              @relation("NotificationRecipient", fields: [recipientUserId], references: [id])
+
+  @@unique([eventId, recipientUserId])
+  @@index([recipientUserId, readAt, createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id        String  @id @default(cuid())
+  userId    String  @map("user_id")
+  eventType String  @map("event_type")
+  inApp     Boolean @default(true) @map("in_app")
+  inDigest  Boolean @default(false) @map("in_digest")
+
+  user User @relation("NotificationPrefUser", fields: [userId], references: [id])
+
+  @@unique([userId, eventType])
+  @@map("notification_preferences")
+}
+
+model NotificationUserSetting {
+  id          String  @id @default(cuid())
+  userId      String  @unique @map("user_id")
+  quietStart  String? @map("quiet_start") // "HH:mm" in Asia/Kolkata
+  quietEnd    String? @map("quiet_end")
+  digestTime  String? @map("digest_time")
+
+  user User @relation("NotificationSettingUser", fields: [userId], references: [id])
+
+  @@map("notification_user_settings")
+}
+
+// ---------------------------------------------------------------- Phase 2 Metrics
+
+model MetricDailyBranch {
+  id                       String   @id @default(cuid())
+  branchId                 String   @map("branch_id")
+  businessDate             DateTime @map("business_date") @db.Date
+  collectionsCashPaise     Int      @default(0) @map("collections_cash_paise")
+  collectionsOnlinePaise   Int      @default(0) @map("collections_online_paise")
+  reversalsPaise           Int      @default(0) @map("reversals_paise")
+  outstandingPaise         Int      @default(0) @map("outstanding_paise")
+  overduePaise             Int      @default(0) @map("overdue_paise")
+  activeStudents           Int      @default(0) @map("active_students")
+  attendanceSessionsMarked Int      @default(0) @map("attendance_sessions_marked")
+  attendancePresent        Int      @default(0) @map("attendance_present")
+  attendanceAbsent         Int      @default(0) @map("attendance_absent")
+  enquiriesCreated         Int      @default(0) @map("enquiries_created")
+  enquiriesContacted       Int      @default(0) @map("enquiries_contacted")
+  enquiriesConverted       Int      @default(0) @map("enquiries_converted")
+  enquiriesLost            Int      @default(0) @map("enquiries_lost")
+  trialsAttended           Int      @default(0) @map("trials_attended")
+  computedAt               DateTime @map("computed_at")
+  sourceVersion            Int      @default(1) @map("source_version")
+
+  branch Branch @relation("MetricBranch", fields: [branchId], references: [id])
+
+  @@unique([branchId, businessDate])
+  @@index([businessDate])
+  @@map("metric_daily_branch")
+}
+
+model MetricReconciliationRun {
+  id           String               @id @default(cuid())
+  businessDate DateTime             @map("business_date") @db.Date
+  branchId     String?              @map("branch_id")
+  status       ReconciliationStatus
+  details      Json?
+  createdAt    DateTime             @default(now()) @map("created_at")
+
+  branch Branch? @relation("ReconBranch", fields: [branchId], references: [id])
+
+  @@index([businessDate, status])
+  @@map("metric_reconciliation_runs")
+}
+
+
+
+
+

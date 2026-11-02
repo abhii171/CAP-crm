@@ -1,7 +1,7 @@
 import crypto from 'crypto'
-import { prisma } from '@/lib/prisma'
+import { prisma, isDbAvailable } from '@/lib/prisma'
 import { logAudit } from '@/lib/audit'
-import { UserContext, authorize, RecordNotFoundError, PermissionDeniedError } from '@/lib/rbac'
+import { UserContext, authorize, RecordNotFoundError, PermissionDeniedError, SecurityError } from '@/lib/rbac'
 import { assertBranchAccess } from '@/lib/branch-query'
 import { getStudentById } from './student.service'
 import { listStudentDues, applyDuePayment, revertDuePayment } from './fee.service'
@@ -56,8 +56,6 @@ let demoPaymentLinks: PaymentLinkRecord[] = []
 let demoUnmatchedPayments: UnmatchedPaymentRecord[] = []
 let demoProcessedGatewayPaymentIds = new Set<string>()
 let demoGatewayTransactions: GatewayTransaction[] = []
-
-const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET || 'cpa_webhook_secret_key_demo_2026'
 
 /**
  * Creates a unique online payment link tied to a student and optionally a specific due.
@@ -137,20 +135,31 @@ export async function listPaymentLinks(
 
 /**
  * Verifies Razorpay/Gateway HMAC-SHA256 webhook signature.
+ * Fails closed if RAZORPAY_WEBHOOK_SECRET is missing.
  */
 export function verifyWebhookSignature(payloadRaw: string, signature: string): boolean {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET
+  if (!secret) {
+    console.error('RAZORPAY_WEBHOOK_SECRET is not configured. Webhook verification failed closed.')
+    return false
+  }
+
   if (!signature || !payloadRaw) return false
 
   try {
     const expectedSignature = crypto
-      .createHmac('sha256', WEBHOOK_SECRET)
+      .createHmac('sha256', secret)
       .update(payloadRaw)
       .digest('hex')
 
-    return crypto.timingSafeEqual(
-      Buffer.from(signature, 'utf8'),
-      Buffer.from(expectedSignature, 'utf8')
-    )
+    const sigBuf = Buffer.from(signature, 'utf8')
+    const expBuf = Buffer.from(expectedSignature, 'utf8')
+
+    if (sigBuf.length !== expBuf.length) {
+      return false
+    }
+
+    return crypto.timingSafeEqual(sigBuf, expBuf)
   } catch {
     return false
   }
@@ -174,11 +183,10 @@ export async function processOnlinePaymentWebhook(input: {
   receiptNumber?: number
   message: string
 }> {
-  // 1. Signature Verification (if rawBody & signature are provided)
-  if (input.rawBody && input.signature) {
-    const isValid = verifyWebhookSignature(input.rawBody, input.signature)
-    if (!isValid) {
-      throw new Error('Invalid webhook HMAC signature.')
+  // 1. Signature Verification (mandatory if incoming from webhook; fails closed if invalid)
+  if (input.rawBody || input.signature) {
+    if (!input.signature || !input.rawBody || !verifyWebhookSignature(input.rawBody, input.signature)) {
+      throw new SecurityError('Invalid webhook HMAC signature.', 401)
     }
   }
 
@@ -200,6 +208,23 @@ export async function processOnlinePaymentWebhook(input: {
       message: `Gateway payment ${gatewayPaymentId} has already been processed (Idempotent).`,
     }
   }
+
+  if (isDbAvailable()) {
+    try {
+      const existing = await prisma.payment.findUnique({
+        where: { gatewayPaymentId },
+      })
+      if (existing) {
+        demoProcessedGatewayPaymentIds.add(gatewayPaymentId)
+        return {
+          success: true,
+          status: 'ALREADY_PROCESSED',
+          message: `Gateway payment ${gatewayPaymentId} has already been processed (Idempotent).`,
+        }
+      }
+    } catch {}
+  }
+
   // Synchronously reserve gatewayPaymentId before any async calls to prevent concurrent duplicate race conditions
   demoProcessedGatewayPaymentIds.add(gatewayPaymentId)
 

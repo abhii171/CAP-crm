@@ -101,6 +101,7 @@ export function DashboardHeader({ user: propUser }: DashboardHeaderProps) {
       <nav className="hidden md:flex items-center gap-1 text-xs font-medium">
         {currentUser.role === 'ADMIN' && (
           <>
+            <a href="/admin/enquiries" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--primary-600)] font-semibold hover:text-[var(--text)] transition-colors">Enquiries</a>
             <a href="/admin/branches" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">Branches</a>
             <a href="/admin/users" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">Staff</a>
             <a href="/admin/batches" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">Batches</a>
@@ -113,6 +114,7 @@ export function DashboardHeader({ user: propUser }: DashboardHeaderProps) {
         )}
         {currentUser.role === 'MANAGER' && (
           <>
+            <a href="/manager/enquiries" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--primary-600)] font-semibold hover:text-[var(--text)] transition-colors">Enquiries & Trials</a>
             <a href="/manager/batches" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">Batches</a>
             <a href="/manager/coaches" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">Coaches</a>
             <a href="/manager/students" className="px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">Students</a>

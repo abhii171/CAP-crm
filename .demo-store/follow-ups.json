@@ -1,0 +1,17 @@
+[
+  {
+    "id": "fu-1793612985136-lsv2lj",
+    "enquiryId": "enq-1793612952982-vd092",
+    "dueAt": "2026-11-12T11:49:00.000Z",
+    "channel": "WHATSAPP",
+    "note": null,
+    "outcome": null,
+    "doneAt": null,
+    "doneByUserId": null,
+    "cancelledAt": null,
+    "createdByUserId": "demo-user-admin",
+    "createdAt": "2026-11-02T09:49:45.136Z",
+    "childName": "Abhi",
+    "phone": "+9199999999"
+  }
+]

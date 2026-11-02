@@ -26,6 +26,11 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
+    // For Managers, force branchId to the manager's own branch
+    if (user.role === 'MANAGER' && user.branchId) {
+      body.branchId = user.branchId
+    }
+
     const result = await createUser(user, body)
     return NextResponse.json({ success: true, ...result }, { status: 201 })
   } catch (err: any) {

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { DashboardHeader } from '@/components/dashboard-header'
 import { ArrowLeft, UserPlus, KeyRound, UserX, UserCheck, Shield, AlertTriangle, Users, Copy, X, Loader2 } from 'lucide-react'
 
 interface CoachItem {
@@ -144,44 +145,47 @@ export default function ManagerCoachesPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 w-full bg-[var(--surface)] border-b border-[var(--border)] px-4 sm:px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/manager"
-            className="w-8 h-8 rounded-md border border-[var(--border)] hover:bg-[var(--surface-2)] flex items-center justify-center text-[var(--text)] transition-colors"
-            title="Back to Manager Home"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div>
-            <h1 className="font-bold text-base text-[var(--text)] tracking-tight">
-              Branch Coaching Staff
-            </h1>
-            <p className="text-xs text-[var(--text-muted)]">
-              Manage coaches assigned to your branch and oversee ground access.
-            </p>
-          </div>
-        </div>
-
-        {branchType === 'OWNED' ? (
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="h-8 px-3 rounded-md bg-[var(--primary-600)] hover:bg-[var(--primary-700)] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>New Coach</span>
-          </button>
-        ) : (
-          <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--warning)] bg-[var(--accent-50)] px-3 py-1 rounded-full border border-[var(--warning)]/30">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            <span>Franchise View-Only</span>
-          </div>
-        )}
-      </header>
+      <DashboardHeader />
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[var(--border)]">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/manager"
+              className="w-8 h-8 rounded-md border border-[var(--border)] hover:bg-[var(--surface-2)] flex items-center justify-center text-[var(--text)] transition-colors"
+              title="Back to Manager Home"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+            <div>
+              <h1 className="font-bold text-lg text-[var(--text)] tracking-tight">
+                Branch Coaching Staff
+              </h1>
+              <p className="text-xs text-[var(--text-muted)]">
+                Manage coaches assigned to your branch and oversee ground access.
+              </p>
+            </div>
+          </div>
+
+          {branchType === 'OWNED' ? (
+            <button
+              onClick={() => {
+                setFormError(null)
+                setIsModalOpen(true)
+              }}
+              className="h-9 px-4 rounded-md bg-[var(--primary-600)] hover:bg-[var(--primary-700)] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>New Coach</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs font-medium text-[var(--warning)] bg-[var(--accent-50)] px-3 py-1 rounded-full border border-[var(--warning)]/30">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>Franchise View-Only</span>
+            </div>
+          )}
+        </div>
         {branchType === 'FRANCHISE' && (
           <div className="p-4 rounded-lg bg-[var(--accent-50)] border border-[var(--warning)]/30 text-xs text-[var(--warning)] font-medium flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />

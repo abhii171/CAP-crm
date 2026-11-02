@@ -27,8 +27,18 @@ export const ABSOLUTE_TIMEOUT_MS: Record<UserRole, number> = {
   COACH: 24 * 60 * 60 * 1000    // 24 hours
 }
 
+export function getSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET
+  if (!secret || secret.length < 32) {
+    throw new Error('SESSION_SECRET environment variable is missing or shorter than 32 characters (must be at least 32 characters).')
+  }
+  return secret
+}
+
 export const sessionOptions = {
-  password: process.env.SESSION_SECRET || 'a-very-secure-random-secret-key-that-is-at-least-32-chars-long',
+  get password(): string {
+    return getSessionSecret()
+  },
   cookieName: 'cpa_crm_session',
   cookieOptions: {
     secure: process.env.COOKIE_SECURE === 'true' || (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_APP_URL?.startsWith('https') === true),

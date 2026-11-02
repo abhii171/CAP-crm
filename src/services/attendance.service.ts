@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { prisma, isDbAvailable, markDbOffline } from '@/lib/prisma'
 import { logAudit } from '@/lib/audit'
 import { UserContext, authorize, can, RecordNotFoundError, PermissionDeniedError } from '@/lib/rbac'
 import { scopeBranchWhere, assertBranchAccess, assertCoachBatchAssignment, sanitizeStudentForRole } from '@/lib/branch-query'
@@ -141,6 +141,50 @@ export async function getSessionsForDate(
     // Find existing session in demo store or DB
     let session = demoSessions.find((s) => s.batchId === batch.id && s.date === effectiveDate)
 
+    if (!session && isDbAvailable()) {
+      try {
+        const dbSession = await prisma.session.findUnique({
+          where: {
+            batchId_date: {
+              batchId: batch.id,
+              date: new Date(effectiveDate),
+            },
+          },
+          include: {
+            attendances: true,
+          },
+        })
+        if (dbSession) {
+          session = {
+            id: dbSession.id,
+            batchId: batch.id,
+            batchName: batch.name,
+            branchId: batch.branchId,
+            date: effectiveDate,
+            status: dbSession.status as any,
+            cancelReason: dbSession.cancelReason,
+            attendanceSubmittedAt: dbSession.attendanceSubmittedAt?.toISOString() || null,
+            startTime: batch.startTime,
+            endTime: batch.endTime,
+            coachName: batch.currentCoach?.name,
+            isLive,
+            roster: [],
+            attendances: dbSession.attendances.map((a) => ({
+              id: a.id,
+              studentId: a.studentId,
+              status: a.status as any,
+              markedById: a.markedById,
+              markedAt: a.markedAt.toISOString(),
+              isLateEntry: a.isLateEntry,
+            })),
+          }
+          demoSessions.push(session)
+        }
+      } catch {
+        markDbOffline()
+      }
+    }
+
     if (!session) {
       session = {
         id: `sess-${batch.id}-${effectiveDate}`,
@@ -280,6 +324,61 @@ export async function submitSessionAttendance(
     session.status = 'COMPLETED'
   }
   session.attendanceSubmittedAt = nowIso
+
+  // Persist session and attendance records with Prisma in an atomic transaction when database is active
+  if (isDbAvailable()) {
+    try {
+      await prisma.$transaction(async (tx) => {
+        const dbSession = await tx.session.upsert({
+          where: {
+            batchId_date: {
+              batchId: input.batchId,
+              date: new Date(input.date),
+            },
+          },
+          update: {
+            status: wasCancelled ? 'CANCELLED' : 'COMPLETED',
+            attendanceSubmittedAt: new Date(nowIso),
+          },
+          create: {
+            batchId: input.batchId,
+            branchId: batch.branchId,
+            date: new Date(input.date),
+            status: wasCancelled ? 'CANCELLED' : 'COMPLETED',
+            attendanceSubmittedAt: new Date(nowIso),
+          },
+        })
+
+        for (const item of input.records) {
+          await tx.attendance.upsert({
+            where: {
+              sessionId_studentId: {
+                sessionId: dbSession.id,
+                studentId: item.studentId,
+              },
+            },
+            update: {
+              status: item.status,
+              markedById: caller.userId,
+              markedAt: new Date(nowIso),
+              isLateEntry: lateFlag,
+              editedAt: new Date(nowIso),
+            },
+            create: {
+              sessionId: dbSession.id,
+              studentId: item.studentId,
+              status: item.status,
+              markedById: caller.userId,
+              markedAt: new Date(nowIso),
+              isLateEntry: lateFlag,
+            },
+          })
+        }
+      })
+    } catch {
+      markDbOffline()
+    }
+  }
 
   let alertsSent = 0
   let lateEntryCount = 0

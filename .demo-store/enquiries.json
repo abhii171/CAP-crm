@@ -1,0 +1,31 @@
+[
+  {
+    "id": "enq-1793612952982-vd092",
+    "branchId": "branch-kkp",
+    "childName": "Abhi",
+    "guardianName": "arjun",
+    "phone": "99999999",
+    "phoneNormalized": "+9199999999",
+    "email": null,
+    "childAgeYears": 11,
+    "interest": null,
+    "source": "WEBSITE",
+    "sourceDetail": null,
+    "createdVia": "MANUAL",
+    "status": "CONTACTED",
+    "assignedToUserId": "demo-user-admin",
+    "lostReasonId": null,
+    "lostNote": null,
+    "nextFollowUpAt": null,
+    "lastContactedAt": "2026-11-02T09:49:29.319Z",
+    "possibleDuplicate": false,
+    "mergedIntoId": null,
+    "convertedStudentId": null,
+    "convertedAt": null,
+    "createdByUserId": "demo-user-admin",
+    "anonymizedAt": null,
+    "version": 2,
+    "createdAt": "2026-11-02T09:49:12.982Z",
+    "updatedAt": "2026-11-02T09:49:29.319Z"
+  }
+]

@@ -25,18 +25,35 @@ interface Session {
   }
 }
 
+interface TrialGuest {
+  id: string
+  batchId: string
+  childName: string
+  childAgeYears?: number | null
+  status: string
+  note?: string | null
+}
+
 export default function CoachPage() {
   const [sessions, setSessions] = useState<Session[]>([])
+  const [trialGuests, setTrialGuests] = useState<TrialGuest[]>([])
   const [loading, setLoading] = useState(true)
   const todayStr = new Date().toISOString().split('T')[0]
 
-  const fetchTodaySessions = async () => {
+  const fetchTodayData = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/attendance/sessions?date=${todayStr}`)
-      const data = await res.json()
-      if (data.success && Array.isArray(data.sessions)) {
-        setSessions(data.sessions)
+      const [sessRes, dashRes] = await Promise.all([
+        fetch(`/api/attendance/sessions?date=${todayStr}`),
+        fetch(`/api/dashboard/coach`),
+      ])
+      const sessData = await sessRes.json()
+      if (sessData.success && Array.isArray(sessData.sessions)) {
+        setSessions(sessData.sessions)
+      }
+      const dashData = await dashRes.json()
+      if (dashData.success && dashData.dashboard?.todayTrialGuests) {
+        setTrialGuests(dashData.dashboard.todayTrialGuests)
       }
     } catch (err) {
       console.error('Failed to fetch coach sessions:', err)
@@ -46,7 +63,7 @@ export default function CoachPage() {
   }
 
   useEffect(() => {
-    fetchTodaySessions()
+    fetchTodayData()
   }, [])
 
   const completedCount = sessions.filter((s) => s.attendanceSubmittedAt || s.status === 'COMPLETED').length
@@ -64,7 +81,7 @@ export default function CoachPage() {
                 Today&apos;s Pitch Sessions
               </h1>
               <button
-                onClick={fetchTodaySessions}
+                onClick={fetchTodayData}
                 className="p-1 rounded hover:bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                 title="Refresh Sessions"
               >
@@ -185,6 +202,56 @@ export default function CoachPage() {
                 </div>
               )
             })
+          )}
+        </div>
+
+        {/* Today's Trial Guests Section (Anti-Poaching: Phone numbers strictly hidden from coaches) */}
+        <div className="pt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-[var(--text)] flex items-center gap-2">
+                <Users className="w-4 h-4 text-[var(--primary-600)]" />
+                <span>Today&apos;s Trial Guests</span>
+              </h2>
+              <p className="text-xs text-[var(--text-muted)]">
+                Prospective cadets booked for trial assessments today (Contact info protected).
+              </p>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/30">
+              {trialGuests.length} Guests
+            </span>
+          </div>
+
+          {trialGuests.length === 0 ? (
+            <div className="p-4 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs text-center text-[var(--text-muted)]">
+              No trial guests scheduled for your sessions today.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {trialGuests.map((guest) => (
+                <div
+                  key={guest.id}
+                  className="p-3.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex items-center justify-between"
+                >
+                  <div>
+                    <div className="font-semibold text-xs text-[var(--text)] flex items-center gap-1.5">
+                      <span>{guest.childName}</span>
+                      {guest.childAgeYears && (
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                          ({guest.childAgeYears} yrs)
+                        </span>
+                      )}
+                    </div>
+                    {guest.note && (
+                      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">Note: {guest.note}</p>
+                    )}
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Scheduled
+                  </span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </main>

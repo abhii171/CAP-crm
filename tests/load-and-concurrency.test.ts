@@ -95,9 +95,8 @@ async function runConcurrencyAndLoadTests() {
 
   const startAttMs = Date.now()
   const sessionResult = await submitSessionAttendance(coachArjun, {
-    sessionId: 'session-load-test',
     batchId: 'batch-1',
-    sessionDate: attendanceDate,
+    date: attendanceDate,
     records: mockStudents,
   })
   const durationAttMs = Date.now() - startAttMs
@@ -113,7 +112,9 @@ async function runConcurrencyAndLoadTests() {
 
   console.log('\n--- 3. Concurrency: Razorpay Webhook Idempotency ---')
 
-  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || 'cpa_webhook_secret_key_demo_2026'
+  process.env.RAZORPAY_WEBHOOK_SECRET =
+    process.env.RAZORPAY_WEBHOOK_SECRET || 'test_razorpay_webhook_secret_key_32chars'
+  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET
   const mockPaymentId = `pay_concurrent_load_${Date.now()}`
   const webhookPayload = JSON.stringify({
     event: 'payment.captured',

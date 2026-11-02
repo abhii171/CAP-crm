@@ -1,4 +1,4 @@
-import { prisma, isDbAvailable } from '@/lib/prisma'
+import { prisma, isDbAvailable, markDbOffline } from '@/lib/prisma'
 import { logAudit } from '@/lib/audit'
 import { UserContext, authorize, RecordNotFoundError, PermissionDeniedError } from '@/lib/rbac'
 import { assertBranchAccess } from '@/lib/branch-query'
@@ -132,7 +132,9 @@ export async function getNextReceiptNumber(branchId: string): Promise<number> {
         create: { branchId, lastNumber: 1 },
       })
       return counter.lastNumber
-    } catch {}
+    } catch {
+      markDbOffline()
+    }
   }
 
   demoReceiptCounters[branchId] = (demoReceiptCounters[branchId] || 0) + 1
@@ -205,10 +207,70 @@ export async function recordCashPayment(
     }
   }
 
-  // Issue next sequential receipt number
-  const receiptNumber = await getNextReceiptNumber(input.branchId)
-  const paymentId = `pay-${Date.now()}`
+  // Issue sequential receipt number and persist payment atomically under database mode
+  let receiptNumber = 0
+  let paymentId = `pay-${Date.now()}`
   const nowIso = new Date().toISOString()
+  const now = new Date()
+
+  if (isDbAvailable()) {
+    try {
+      const txResult = await prisma.$transaction(async (tx) => {
+        // Atomic increment on ReceiptCounter inside transaction
+        const counter = await tx.receiptCounter.upsert({
+          where: { branchId: input.branchId },
+          update: { lastNumber: { increment: 1 } },
+          create: { branchId: input.branchId, lastNumber: 1 },
+        })
+
+        const dbReceiptNum = counter.lastNumber
+
+        // Create Payment with allocations and receipt
+        const dbPayment = await tx.payment.create({
+          data: {
+            branchId: input.branchId,
+            studentId: student.id,
+            entryType: 'PAYMENT',
+            method: 'CASH',
+            amountPaise: input.amountPaise,
+            businessDate: new Date(businessDate),
+            receivedAt: now,
+            collectedById: caller.userId,
+            note: input.note || null,
+            allocations: {
+              create: allocations.map((a) => ({
+                dueId: a.dueId,
+                amountPaise: a.amountPaise,
+              })),
+            },
+            receipt: {
+              create: {
+                branchId: input.branchId,
+                number: dbReceiptNum,
+                issuedAt: now,
+              },
+            },
+          },
+        })
+
+        return {
+          dbPaymentId: dbPayment.id,
+          receiptNumber: dbReceiptNum,
+        }
+      })
+
+      receiptNumber = txResult.receiptNumber
+      paymentId = txResult.dbPaymentId
+    } catch {
+      markDbOffline()
+    }
+  }
+
+  // Fallback to in-memory counter if database offline / demo mode
+  if (!receiptNumber) {
+    demoReceiptCounters[input.branchId] = (demoReceiptCounters[input.branchId] || 0) + 1
+    receiptNumber = demoReceiptCounters[input.branchId]
+  }
 
   const payment: PaymentRecord = {
     id: paymentId,

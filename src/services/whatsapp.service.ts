@@ -70,6 +70,16 @@ export const TEMPLATE_REGISTRY: Record<string, MessageTemplateDef> = {
     description: 'Holiday, rain cancellation, or schedule broadcast',
     metaStatus: 'APPROVED',
   },
+  // Phase 2 Enquiry Follow-up Template (Touchpoint T5)
+  enquiry_followup: {
+    name: 'enquiry_followup',
+    category: 'MARKETING',
+    language: 'en',
+    bodyTemplate: '🏏 Hello {{guardianName}}! Following up from CPA Cricket Academy regarding {{childName}}\'s interest in cricket coaching. Would you like to schedule a trial session at our {{branchName}} center? Reply YES or call us.',
+    variables: ['guardianName', 'childName', 'branchName'],
+    description: 'Outbound follow-up to prospective student enquiries',
+    metaStatus: 'APPROVED',
+  },
 }
 
 export interface QueueMessageInput {
