@@ -43,6 +43,16 @@ typography:
     fontWeight: 600
     lineHeight: 1.25
     letterSpacing: "0.02em"
+  caption:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif"
+    fontSize: "0.6875rem"
+    fontWeight: 500
+    lineHeight: 1.2
+  micro:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif"
+    fontSize: "0.625rem"
+    fontWeight: 600
+    lineHeight: 1.2
 rounded:
   sm: "8px"
   md: "12px"
@@ -114,7 +124,9 @@ The palette draws directly from the cricket pitch: pristine whites, rich boundar
 - **Headline** (Bold 700, 1.5rem / 24px, line-height 1.25): Modal titles, section banners, and major report headers.
 - **Title** (Semibold 600, 1.125rem / 18px, line-height 1.35): Table headers, card headers, and student names in detail views.
 - **Body** (Regular 400, 0.875rem / 14px, line-height 1.5): Table row text, lead descriptions, and general UI copy.
-- **Label** (Semibold 600, 0.75rem / 12px, letter-spacing 0.02em): Status badges, table column headers, and input form labels.
+- **Label** (Semibold 600, 0.75rem / 12px, letter-spacing 0.02em): Form labels, column headers, and primary filter controls.
+- **Caption** (Medium 500, 0.6875rem / 11px, line-height 1.2): Guardian sub-labels, metadata timestamps, and secondary table annotations.
+- **Micro** (Semibold 600, 0.625rem / 10px, line-height 1.2): High-density status pills, overdue tags, and compact count badges.
 
 ### Named Rules
 **The Tabular Precision Rule.** Every phone number, rupee collection amount, timestamp, and roll-call count must explicitly use `tabular-nums` to eliminate horizontal text jitter when numbers change or tables reorder.
@@ -172,3 +184,4 @@ The palette draws directly from the cricket pitch: pristine whites, rich boundar
 - **Don't** use heavy artificial card drop shadows at rest; use tonal layering.
 - **Don't** use gradient text or decorative banners on operational dashboards.
 - **Don't** truncate phone numbers or parent contact details in lead tables.
+
