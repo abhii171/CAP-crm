@@ -5,6 +5,7 @@ import { scopeBranchWhere, assertBranchAccess, assertCoachBatchAssignment, sanit
 import { listBatches } from './batch.service'
 import { listStudents, getStudentContactForAlert } from './student.service'
 import { queueOutboundMessage } from './whatsapp.service'
+import { loadDemoData, saveDemoData } from '@/lib/demo-storage'
 
 export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED'
 export type SessionStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'
@@ -51,7 +52,7 @@ export interface SessionRecord {
   }
 }
 
-// In-memory demo store for sessions and attendance
+// Persistent demo store for sessions and attendance
 let demoSessions: (SessionRecord & {
   attendances: {
     id: string
@@ -63,7 +64,7 @@ let demoSessions: (SessionRecord & {
     editedAt?: string | null
     editReason?: string | null
   }[]
-})[] = []
+})[] = loadDemoData('attendance-sessions', [])
 
 /**
  * Checks if a session is currently live (current time between startTime and endTime on date).
@@ -201,6 +202,7 @@ export async function getSessionsForDate(
         attendances: [],
       }
       demoSessions.push(session)
+      saveDemoData('attendance-sessions', demoSessions)
     } else {
       session.isLive = isLive
     }
@@ -279,9 +281,15 @@ export async function submitSessionAttendance(
 
   // If coach, verify assignment to this batch
   if (caller.role === 'COACH') {
-    const coachIds = [batch.currentCoach?.id, batch.currentCoach?.loginId, (batch as any).coachId].filter(
-      Boolean
-    ) as string[]
+    const coachIds: string[] = [
+      batch.currentCoach?.id,
+      batch.currentCoach?.loginId,
+      (batch as any).coachId,
+      ...(batch.coachingStaff?.map((c) => c.id) || []),
+      ...(batch.coachingStaff?.map((c) => c.loginId) || []),
+      ...((batch as any).assignedCoaches?.map((c: any) => c.coachId) || []),
+      ...((batch as any).assignedCoaches?.map((c: any) => c.loginId) || []),
+    ].filter(Boolean) as string[]
     assertCoachBatchAssignment(caller, coachIds, batch.name)
   }
 
@@ -328,6 +336,20 @@ export async function submitSessionAttendance(
   // Persist session and attendance records with Prisma in an atomic transaction when database is active
   if (isDbAvailable()) {
     try {
+      let actualDbUserId = caller.userId
+      const dbUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: caller.userId },
+            ...(caller.loginId ? [{ loginId: caller.loginId }] : []),
+          ],
+        },
+        select: { id: true },
+      })
+      if (dbUser) {
+        actualDbUserId = dbUser.id
+      }
+
       await prisma.$transaction(async (tx) => {
         const dbSession = await tx.session.upsert({
           where: {
@@ -359,7 +381,7 @@ export async function submitSessionAttendance(
             },
             update: {
               status: item.status,
-              markedById: caller.userId,
+              markedById: actualDbUserId,
               markedAt: new Date(nowIso),
               isLateEntry: lateFlag,
               editedAt: new Date(nowIso),
@@ -368,7 +390,7 @@ export async function submitSessionAttendance(
               sessionId: dbSession.id,
               studentId: item.studentId,
               status: item.status,
-              markedById: caller.userId,
+              markedById: actualDbUserId,
               markedAt: new Date(nowIso),
               isLateEntry: lateFlag,
             },
@@ -433,6 +455,8 @@ export async function submitSessionAttendance(
     }
   }
 
+  saveDemoData('attendance-sessions', demoSessions)
+
   await logAudit({
     actorId: caller.userId,
     branchId: batch.branchId,
@@ -491,6 +515,8 @@ export async function cancelSession(
     session.status = 'CANCELLED'
     session.cancelReason = input.reason
   }
+
+  saveDemoData('attendance-sessions', demoSessions)
 
   await logAudit({
     actorId: caller.userId,
@@ -555,6 +581,8 @@ export async function managerCorrectAttendance(
     session.attendances.push(attendance)
   }
 
+  saveDemoData('attendance-sessions', demoSessions)
+
   await logAudit({
     actorId: caller.userId,
     branchId: session.branchId,
@@ -575,4 +603,10 @@ export function __setSessionSubmittedAtForTest(batchId: string, date: string, ti
   if (session) {
     session.attendanceSubmittedAt = timestamp
   }
+}
+
+/** Test utility to reset session cache between automated test runs */
+export function __resetDemoSessionsForTest(): void {
+  demoSessions = []
+  saveDemoData('attendance-sessions', demoSessions)
 }

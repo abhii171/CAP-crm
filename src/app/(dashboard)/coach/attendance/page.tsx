@@ -271,8 +271,15 @@ export default function CoachAttendancePage() {
           <div className="mb-4 flex items-center justify-between rounded-xl border border-emerald-300 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800 shadow-xs">
             <div className="flex items-center gap-2">
               <Wifi className="h-4 w-4 shrink-0" />
-              <span>Offline marks stored locally. Tap &ldquo;Submit Attendance&rdquo; to sync to cloud.</span>
+              <span>Offline marks stored locally. Ready to synchronize.</span>
             </div>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="px-3 py-1 rounded-lg bg-emerald-700 text-white text-xs font-bold hover:bg-emerald-800 cursor-pointer disabled:opacity-50"
+            >
+              {submitting ? 'Syncing…' : 'Sync to Cloud'}
+            </button>
           </div>
         )}
 
@@ -347,8 +354,13 @@ export default function CoachAttendancePage() {
             {/* Status bar */}
             <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: 'var(--border)', background: 'var(--surface-1)' }}>
               <div>
-                <div className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                  {activeSession.batchName} Roster ({activeSession.roster.length} cadets)
+                <div className="text-sm font-bold flex items-center gap-2 flex-wrap" style={{ color: 'var(--text-primary)' }}>
+                  <span>{activeSession.batchName} Roster ({activeSession.roster.length} cadets)</span>
+                  {activeSession.status === 'COMPLETED' && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      ✓ Submitted
+                    </span>
+                  )}
                 </div>
                 {activeSession.status === 'CANCELLED' ? (
                   <span className="text-xs font-semibold text-red-600">
@@ -457,11 +469,15 @@ export default function CoachAttendancePage() {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white shadow-md transition-transform active:scale-98 disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white shadow-md transition-transform active:scale-98 disabled:opacity-50 cursor-pointer"
                   style={{ background: 'var(--primary-600)' }}
                 >
                   <Send className="h-4 w-4" />
-                  {submitting ? 'Submitting & Dispatching Alerts…' : 'Submit Daily Attendance'}
+                  {submitting
+                    ? 'Submitting & Dispatching Alerts…'
+                    : activeSession.status === 'COMPLETED'
+                    ? 'Update Submitted Attendance'
+                    : 'Submit Daily Attendance'}
                 </button>
               </div>
             )}

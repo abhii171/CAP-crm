@@ -4,6 +4,7 @@ import {
   cancelSession,
   managerCorrectAttendance,
   __setSessionSubmittedAtForTest,
+  __resetDemoSessionsForTest,
 } from '../src/services/attendance.service'
 import { listMessages } from '../src/services/whatsapp.service'
 import { UserContext, PermissionDeniedError, RecordNotFoundError } from '../src/lib/rbac'
@@ -55,6 +56,7 @@ const coachOther: UserContext = {
 }
 
 async function runTests() {
+  __resetDemoSessionsForTest()
   const todayStr = new Date().toISOString().split('T')[0]
 
   // Test 1: Coach only sees sessions for batches they are assigned to

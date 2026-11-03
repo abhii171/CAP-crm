@@ -45,18 +45,27 @@ export function assertBranchAccess(
 
 /**
  * Verifies that a coach is assigned to the requested batch.
- * If not, throws a RecordNotFoundError.
+ * If not, throws a RecordNotFoundError to prevent existence leakage.
  */
 export function assertCoachBatchAssignment(
   user: UserContext,
-  assignedCoachIds: string[],
+  assignedCoachIdentifiers: (string | null | undefined)[],
   batchName = 'Batch'
 ): void {
   if (user.role === 'ADMIN' || user.role === 'MANAGER') return
 
   if (user.role === 'COACH') {
-    if (!assignedCoachIds.includes(user.userId)) {
-      throw new RecordNotFoundError(batchName)
+    const validIdentifiers = assignedCoachIdentifiers.filter(Boolean) as string[]
+    const isAssigned = validIdentifiers.some(
+      (id) =>
+        id === user.userId ||
+        (user.loginId && id === user.loginId) ||
+        (user.userId && id.toLowerCase() === user.userId.toLowerCase()) ||
+        (user.loginId && id.toLowerCase() === user.loginId.toLowerCase())
+    )
+
+    if (!isAssigned) {
+      throw new RecordNotFoundError('Batch')
     }
   }
 }
