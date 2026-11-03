@@ -136,12 +136,12 @@ export default function LoginPage() {
             </div>
 
             {/* Demo Quick-Presets */}
-            <div className="mb-6 p-3.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border)]">
-              <div className="flex items-center justify-between mb-2">
+            <div className="mb-6 pb-6 border-b border-[var(--border)]">
+              <div className="flex items-center justify-between mb-2.5">
                 <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
                   1-Click Demo Accounts
                 </span>
-                <span className="text-[11px] text-[var(--text-muted)]">Select to test role</span>
+                <span className="text-xs text-[var(--text-muted)]">Select to test role</span>
               </div>
 
               <div className="grid grid-cols-3 gap-2">
@@ -152,14 +152,14 @@ export default function LoginPage() {
                       key={p.role}
                       type="button"
                       onClick={() => handleSelectPreset(p)}
-                      className={`text-left p-2.5 rounded-md border transition-all text-xs font-medium ${
+                      className={`text-left p-2.5 rounded-md border transition-all text-xs font-medium cursor-pointer ${
                         isSelected
                           ? 'border-[var(--primary-600)] bg-[var(--primary-50)] text-[var(--primary-700)] shadow-xs'
-                          : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-2)] text-[var(--text)]'
+                          : 'border-[var(--border)] bg-[var(--surface-2)] hover:bg-[var(--surface)] text-[var(--text)]'
                       }`}
                     >
                       <div className="font-semibold truncate">{p.label}</div>
-                      <div className="text-[10px] text-[var(--text-muted)] truncate font-mono mt-0.5">
+                      <div className="text-xs text-[var(--text-muted)] truncate font-mono mt-0.5">
                         {p.identifier}
                       </div>
                     </button>
@@ -209,7 +209,7 @@ export default function LoginPage() {
                     className="w-full pl-9 pr-3.5 py-2.5 text-sm rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] focus:border-[var(--primary-600)] focus:ring-2 focus:ring-[var(--primary-600)]/20 transition-all font-mono"
                   />
                 </div>
-                <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                <p className="text-xs text-[var(--text-muted)] mt-1">
                   Admins use email or ID; Managers &amp; Coaches use system Login ID.
                 </p>
               </div>
