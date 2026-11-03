@@ -88,7 +88,7 @@ async function runFollowUpTests() {
   // Check derived nextFollowUpAt
   const updatedEnq = await getEnquiryById(managerKKP, enq.id)
   assert(
-    updatedEnq.nextFollowUpAt !== null && new Date(updatedEnq.nextFollowUpAt).toISOString() === new Date(tomorrow).toISOString(),
+    Boolean(updatedEnq.nextFollowUpAt) && new Date(updatedEnq.nextFollowUpAt!).toISOString() === new Date(tomorrow).toISOString(),
     'Enquiry derived nextFollowUpAt automatically updated to earliest due follow-up'
   )
 

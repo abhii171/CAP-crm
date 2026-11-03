@@ -200,7 +200,7 @@ async function runEnquiryTests() {
   assert(publicEnq.assignedToUserId === null, 'Public enquiry starts unassigned in branch queue')
 
   // Verify Audit Log entry exists with no PII (A-10)
-  const auditLogs = await getAuditLogs(adminUser, { action: 'p2.enquiry.create_public' })
+  const auditLogs = await getAuditLogs({ action: 'p2.enquiry.create_public' })
   assert(auditLogs.length > 0, 'Audit entry p2.enquiry.create_public successfully recorded')
   const lastLog = auditLogs[0]
   assert(

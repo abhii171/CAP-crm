@@ -12,7 +12,6 @@ import {
 import { UserContext, PermissionDeniedError, RecordNotFoundError } from '../src/lib/rbac'
 import { recordCashPayment } from '../src/services/payment.service'
 import { getCollectionsReport } from '../src/services/report.service'
-import { listNotifications } from '../src/modules/phase2/notifications/notification.service'
 import { getAuditLogs } from '../src/lib/audit'
 
 console.log('🧪 Running Step 2.6 Phase 2 Metrics Layer & Reconciliation Automated Tests...')
@@ -174,7 +173,7 @@ async function runMetricsTests() {
   // =========================================================================
   // Test 8: Audit Logging Integrity
   // =========================================================================
-  const auditLogs = await getAuditLogs(adminUser, { action: 'p2.metrics.reconciliation_run' })
+  const auditLogs = await getAuditLogs({ action: 'p2.metrics.reconciliation_run' })
   assert(auditLogs.length > 0, 'Audit entry p2.metrics.reconciliation_run recorded')
   const lastLog = auditLogs[0]
   assert(
