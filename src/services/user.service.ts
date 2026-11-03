@@ -196,12 +196,17 @@ export async function listUsers(
     }
   }
 
-  return demoUsersStore.filter((u) => {
-    if (caller.role !== 'ADMIN' && u.branchId !== caller.branchId) return false
-    if (filter?.role && u.role !== filter.role) return false
-    if (filter?.branchId && u.branchId !== filter.branchId) return false
-    return true
-  })
+  return demoUsersStore
+    .filter((u) => {
+      if (caller.role !== 'ADMIN' && u.branchId !== caller.branchId) return false
+      if (filter?.role && u.role !== filter.role) return false
+      if (filter?.branchId && u.branchId !== filter.branchId) return false
+      return true
+    })
+    .map((u) => {
+      const { passwordHash, ...safeUser } = u as any
+      return safeUser as UserSummary
+    })
 }
 
 export async function createUser(

@@ -4,9 +4,26 @@ import { prisma, isDbAvailable } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { logAudit } from '@/lib/audit'
 import { findDemoUserForAuth } from '@/services/user.service'
+import { loadDemoData, saveDemoData } from '@/lib/demo-storage'
 
-// In-memory lockout tracker for demo resilience
-const failedAttemptsMap = new Map<string, { count: number; lockedUntil: number }>()
+interface LockoutEntry {
+  count: number
+  lockedUntil: number
+}
+
+function getLockouts(): Record<string, LockoutEntry> {
+  return loadDemoData<Record<string, LockoutEntry>>('login-lockouts', {})
+}
+
+function saveLockout(id: string, entry: LockoutEntry | null): void {
+  const all = getLockouts()
+  if (entry) {
+    all[id] = entry
+  } else {
+    delete all[id]
+  }
+  saveDemoData('login-lockouts', all)
+}
 
 interface DemoUser {
   id: string
@@ -85,7 +102,8 @@ export async function POST(req: NextRequest) {
     const now = Date.now()
 
     // 1. Check lockout status
-    const lockout = failedAttemptsMap.get(trimmedId.toLowerCase())
+    const lockouts = getLockouts()
+    const lockout = lockouts[trimmedId.toLowerCase()]
     if (lockout && lockout.lockedUntil > now) {
       const remainingMinutes = Math.ceil((lockout.lockedUntil - now) / 60000)
       return NextResponse.json(
@@ -196,7 +214,7 @@ export async function POST(req: NextRequest) {
           name: demoUser.name,
           mustChangePassword: demoUser.mustChangePassword ?? false,
         }
-        failedAttemptsMap.delete(trimmedId.toLowerCase())
+        saveLockout(trimmedId.toLowerCase(), null)
       } else if (!demoUser) {
         // Also check persistent user store (e.g. for created coaches / managers)
         const storeUser = findDemoUserForAuth(trimmedId)
@@ -211,7 +229,7 @@ export async function POST(req: NextRequest) {
               name: storeUser.name,
               mustChangePassword: storeUser.mustChangePassword ?? false,
             }
-            failedAttemptsMap.delete(trimmedId.toLowerCase())
+            saveLockout(trimmedId.toLowerCase(), null)
           }
         }
       }
@@ -219,11 +237,12 @@ export async function POST(req: NextRequest) {
 
     // 4. Handle authentication failure
     if (!authenticatedUser) {
-      const prev = failedAttemptsMap.get(trimmedId.toLowerCase()) || { count: 0, lockedUntil: 0 }
+      const lockouts = getLockouts()
+      const prev = lockouts[trimmedId.toLowerCase()] || { count: 0, lockedUntil: 0 }
       const newCount = prev.count + 1
       const isLocked = newCount >= 5
 
-      failedAttemptsMap.set(trimmedId.toLowerCase(), {
+      saveLockout(trimmedId.toLowerCase(), {
         count: newCount,
         lockedUntil: isLocked ? now + 15 * 60 * 1000 : 0,
       })

@@ -495,7 +495,11 @@ export function exportReportToCsv(
 ): string {
   const escapeCsvField = (field: any): string => {
     if (field === null || field === undefined) return '""'
-    const str = String(field)
+    let str = String(field)
+    // Formula injection mitigation (CWE-1236): Prepend a single quote to neutralize formula triggers
+    if (/^[=\+\-@\t\r]/.test(str)) {
+      str = `'${str}`
+    }
     return `"${str.replace(/"/g, '""')}"`
   }
 

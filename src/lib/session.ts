@@ -27,10 +27,19 @@ export const ABSOLUTE_TIMEOUT_MS: Record<UserRole, number> = {
   COACH: 24 * 60 * 60 * 1000    // 24 hours
 }
 
+const INSECURE_DEFAULT_SECRETS = new Set([
+  'replace-with-a-random-32-char-secret-at-least',
+  'cpa_production_demo_secret_key_at_least_32_chars_long',
+])
+
 export function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET
   if (!secret || secret.length < 32) {
     throw new Error('SESSION_SECRET environment variable is missing or shorter than 32 characters (must be at least 32 characters).')
+  }
+  // Enforce strong secrets in true production deployments
+  if (process.env.NODE_ENV === 'production' && process.env.DEMO_MODE !== 'true' && INSECURE_DEFAULT_SECRETS.has(secret)) {
+    throw new Error('Insecure default SESSION_SECRET detected in production. Please set a unique 32+ character secret in hosting environment variables.')
   }
   return secret
 }

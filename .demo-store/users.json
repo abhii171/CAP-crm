@@ -1251,5 +1251,20 @@
     "mustChangePassword": true,
     "createdAt": "2026-11-03T18:19:11.736Z",
     "passwordHash": "$2a$12$QjCb3Sx.mkeLdGpQy7KQ6uH3y5ph9ODZkZUXAklAPktHFZvlg3g5a"
+  },
+  {
+    "id": "usr-cch-1793733698961",
+    "loginId": "CCH-KKP-044",
+    "name": "Temporary Ex-Coach",
+    "email": "inactive-coach-1793733698611@cpa.local",
+    "phone": null,
+    "role": "COACH",
+    "branchId": "branch-kkp",
+    "branchName": "CPA Kukatpally",
+    "branchCode": "KKP",
+    "isActive": false,
+    "mustChangePassword": true,
+    "createdAt": "2026-11-03T19:21:38.961Z",
+    "passwordHash": "$2a$12$cy7xbRIg1Tsk/pG1/HGTsuF9hlJZUXvyJCtdHdtsWc2vjjF8uU1xu"
   }
 ]
