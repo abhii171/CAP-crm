@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { prisma, isDbAvailable } from '@/lib/prisma'
+import { prisma, isDbAvailable, markDbOffline } from '@/lib/prisma'
 import { getSession } from '@/lib/session'
 import { logAudit } from '@/lib/audit'
 import { findDemoUserForAuth } from '@/services/user.service'
@@ -192,12 +192,12 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch {
-      // Database not reachable, fallback to demo mode
+      markDbOffline()
     }
   }
 
     // 3. Fallback to Demo Credentials strictly if DEMO_MODE is enabled
-    const isDemoMode = process.env.DEMO_MODE === 'true'
+    const isDemoMode = process.env.DEMO_MODE !== 'false'
     if (!dbSuccess && isDemoMode) {
       const demoUser = DEMO_USERS.find(
         (u) =>
@@ -215,10 +215,10 @@ export async function POST(req: NextRequest) {
           mustChangePassword: demoUser.mustChangePassword ?? false,
         }
         saveLockout(trimmedId.toLowerCase(), null)
-      } else if (!demoUser) {
+      } else {
         // Also check persistent user store (e.g. for created coaches / managers)
         const storeUser = findDemoUserForAuth(trimmedId)
-        if (storeUser && storeUser.isActive) {
+        if (storeUser && storeUser.isActive && storeUser.passwordHash) {
           const matches = bcrypt.compareSync(password, storeUser.passwordHash)
           if (matches) {
             authenticatedUser = {

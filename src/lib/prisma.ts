@@ -9,6 +9,12 @@ export function isDbAvailable(): boolean {
   if (process.env.DEMO_MODE === 'true' || process.env.DEMO_MODE === '1' || globalForPrisma.isDbDisabled) {
     return false
   }
+  if (!process.env.DATABASE_URL || process.env.DATABASE_URL.trim() === '') {
+    return false
+  }
+  if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL.includes('localhost:5432')) {
+    return false
+  }
   return true
 }
 
