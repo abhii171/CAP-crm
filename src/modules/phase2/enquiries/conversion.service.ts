@@ -2,7 +2,7 @@ import { prisma, isDbAvailable, markDbOffline } from '@/lib/prisma'
 import { logAudit } from '@/lib/audit'
 import { UserContext, authorize, RecordNotFoundError, PermissionDeniedError } from '@/lib/rbac'
 import { assertBranchAccess } from '@/lib/branch-query'
-import { getEnquiryById, EnquiryRecord } from './enquiry.service'
+import { getEnquiryById, updateDemoEnquiryStage, EnquiryRecord } from './enquiry.service'
 import { admitStudent, StudentListItem, AdmitStudentInput } from '@/services/student.service'
 
 export interface ConvertEnquiryInput {
@@ -116,6 +116,14 @@ export async function convertEnquiryToStudent(
     }
   }
 
+  updateDemoEnquiryStage(enquiry.id, {
+    status: 'CONVERTED',
+    convertedStudentId: newStudent.id,
+    convertedAt: enquiry.convertedAt,
+    version: enquiry.version,
+    updatedAt: enquiry.updatedAt,
+  })
+
   // 6. Audit Log (zero PII)
   await logAudit({
     actorId: caller.userId,
@@ -176,6 +184,14 @@ export async function repairHalfCompletedConversion(
       markDbOffline()
     }
   }
+
+  updateDemoEnquiryStage(enquiry.id, {
+    status: 'CONVERTED',
+    convertedStudentId: studentId,
+    convertedAt: enquiry.convertedAt,
+    version: enquiry.version,
+    updatedAt: enquiry.updatedAt,
+  })
 
   await logAudit({
     actorId: caller.userId,

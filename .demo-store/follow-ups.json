@@ -1,1 +1,77 @@
-[]
+[
+  {
+    "id": "fu-1793729251520-pitovkj",
+    "enquiryId": "enq-1793729251518-trwjoc",
+    "dueAt": "2026-11-04T18:07:27.339Z",
+    "channel": "WHATSAPP",
+    "note": null,
+    "outcome": null,
+    "doneAt": null,
+    "doneByUserId": null,
+    "cancelledAt": null,
+    "createdByUserId": "usr-mgr-kkp",
+    "createdAt": "2026-11-03T18:07:31.520Z",
+    "childName": "Active Child",
+    "phone": "+919876543210"
+  },
+  {
+    "id": "fu-1793729251511-nnpvkd",
+    "enquiryId": "enq-1793729251508-4fy2t",
+    "dueAt": "2026-11-04T18:07:27.339Z",
+    "channel": "WHATSAPP",
+    "note": null,
+    "outcome": null,
+    "doneAt": null,
+    "doneByUserId": null,
+    "cancelledAt": null,
+    "createdByUserId": "usr-mgr-kkp",
+    "createdAt": "2026-11-03T18:07:31.511Z",
+    "childName": "Suppressed Child",
+    "phone": "+919988771122"
+  },
+  {
+    "id": "fu-1793729247398-u8ezmq",
+    "enquiryId": "enq-1793729247337-d6e5mg",
+    "dueAt": "2026-11-03T13:07:27.397Z",
+    "channel": "CALL",
+    "note": "Urgent callback requested",
+    "outcome": null,
+    "doneAt": null,
+    "doneByUserId": null,
+    "cancelledAt": null,
+    "createdByUserId": "usr-mgr-kkp",
+    "createdAt": "2026-11-03T18:07:27.398Z",
+    "childName": "Aryan Patel",
+    "phone": "+919876543111"
+  },
+  {
+    "id": "fu-1793729247389-c3mxg",
+    "enquiryId": "enq-1793729247337-d6e5mg",
+    "dueAt": "2026-11-05T18:07:27.347Z",
+    "channel": "WHATSAPP",
+    "note": "Send trial details on WhatsApp",
+    "outcome": null,
+    "doneAt": null,
+    "doneByUserId": null,
+    "cancelledAt": null,
+    "createdByUserId": "usr-mgr-kkp",
+    "createdAt": "2026-11-03T18:07:27.389Z",
+    "childName": "Aryan Patel",
+    "phone": "+919876543111"
+  },
+  {
+    "id": "fu-1793729247340-1e2h9o",
+    "enquiryId": "enq-1793729247337-d6e5mg",
+    "dueAt": "2026-11-04T18:07:27.339Z",
+    "channel": "CALL",
+    "note": "Initial call to discuss batch schedules",
+    "outcome": "Spoke with mother; interested in weekend trial",
+    "doneAt": "2026-11-03T18:07:27.349Z",
+    "doneByUserId": "usr-mgr-kkp",
+    "cancelledAt": null,
+    "createdByUserId": "usr-mgr-kkp",
+    "createdAt": "2026-11-03T18:07:27.340Z",
+    "childName": "Aryan Patel",
+    "phone": "+919876543111"
+  }
+]

@@ -4,6 +4,7 @@ import { logAudit } from '@/lib/audit'
 import { UserContext, authorize, RecordNotFoundError, PermissionDeniedError } from '@/lib/rbac'
 import { assertBranchAccess } from '@/lib/branch-query'
 import { getEnquiryById, listEnquiries, EnquiryRecord, updateDemoEnquiryStage } from './enquiry.service'
+import { assignEnquiry } from './enquiry-assignment.service'
 import { transitionEnquiryStage } from './pipeline.service'
 import { isOptedIn, queueOutboundMessage } from '@/services/whatsapp.service'
 import { listUsers } from '@/services/user.service'
@@ -88,15 +89,14 @@ async function updateDerivedNextFollowUp(enquiryId: string): Promise<string | nu
   }
 
   // Fallback demo store
+  demoFollowUps = loadDemoData<FollowUpRecord[]>('follow-ups', [])
   const openDemo = demoFollowUps
     .filter((f) => f.enquiryId === enquiryId && !f.doneAt && !f.cancelledAt)
     .sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime())
 
   nextDate = openDemo[0]?.dueAt || null
   try {
-    const adminUser: UserContext = { userId: 'system', loginId: 'SYS', role: 'ADMIN', branchId: null }
-    const enq = await getEnquiryById(adminUser, enquiryId)
-    enq.nextFollowUpAt = nextDate
+    updateDemoEnquiryStage(enquiryId, { nextFollowUpAt: nextDate })
   } catch {}
 
   return nextDate
@@ -182,6 +182,7 @@ export async function createFollowUp(
     }
   }
 
+  demoFollowUps = loadDemoData<FollowUpRecord[]>('follow-ups', [])
   demoFollowUps.unshift(followUp)
   saveDemoData('follow-ups', demoFollowUps)
 
@@ -380,9 +381,7 @@ export async function listFollowUps(
   }
 
   // Filter demo items
-  if (demoFollowUps.length === 0) {
-    demoFollowUps = loadDemoData('follow-ups', [])
-  }
+  demoFollowUps = loadDemoData<FollowUpRecord[]>('follow-ups', [])
   return demoFollowUps
     .filter((f) => {
       if (filters?.enquiryId && f.enquiryId !== filters.enquiryId) return false
@@ -417,83 +416,13 @@ export async function reassignEnquiries(
     throw new Error('At least one enquiry must be selected for reassignment.')
   }
 
-  let targetUser: { id: string; name: string; branchId?: string | null; isActive?: boolean } | undefined
-
-  if (isDbAvailable()) {
-    try {
-      const u = await prisma.user.findUnique({
-        where: { id: input.targetUserId },
-        select: { id: true, name: true, branchId: true, isActive: true },
-      })
-      if (u) targetUser = u
-    } catch {
-      markDbOffline()
-    }
-  }
-
-  if (!targetUser) {
-    const allUsers = await listUsers({ ...caller, role: 'ADMIN' })
-    targetUser = allUsers.find((u) => u.id === input.targetUserId)
-  }
-
-  if (!targetUser) {
-    throw new RecordNotFoundError('User')
-  }
-
-  if (targetUser.isActive === false) {
-    throw new Error('Cannot assign enquiries to an inactive user.')
-  }
-
-  // Verify branch alignment
-  if (caller.role !== 'ADMIN' && targetUser.branchId !== caller.branchId) {
-    throw new PermissionDeniedError('Cannot reassign enquiries to a staff member outside your branch.')
-  }
-
-  // 1. Verify access and update in-memory / demo state
-  const validatedEnquiries = []
+  let targetUserName = ''
   for (const id of input.enquiryIds) {
-    const enq = await getEnquiryById(caller, id)
-    assertBranchAccess(caller, enq.branchId, 'Enquiry')
-
-    enq.assignedToUserId = targetUser.id
-    enq.updatedAt = new Date().toISOString()
-    updateDemoEnquiryStage(enq.id, { assignedToUserId: targetUser.id, updatedAt: enq.updatedAt })
-    validatedEnquiries.push(enq)
+    const res = await assignEnquiry(caller, id, input.targetUserId, input.note)
+    targetUserName = res.historyEntry.newUserName || targetUserName
   }
 
-  // 2. Single atomic database update
-  if (isDbAvailable()) {
-    try {
-      const allowedIds = validatedEnquiries.map((e) => e.id)
-      await prisma.enquiry.updateMany({
-        where: {
-          id: { in: allowedIds },
-          ...(caller.role !== 'ADMIN' && caller.branchId ? { branchId: caller.branchId } : {}),
-        },
-        data: {
-          assignedToUserId: targetUser.id,
-          updatedAt: new Date(),
-        },
-      })
-    } catch {
-      markDbOffline()
-    }
-  }
-
-  // 3. Log audits for each reassigned enquiry
-  for (const enq of validatedEnquiries) {
-    await logAudit({
-      actorId: caller.userId,
-      branchId: enq.branchId,
-      action: 'p2.enquiry.assign',
-      entityType: 'Enquiry',
-      entityId: enq.id,
-      after: { assignedToUserId: targetUser.id, targetUserName: targetUser.name },
-      reason: input.note || `Reassigned enquiry to ${targetUser.name}`,
-    })
-  }
-
-  return { updatedCount: validatedEnquiries.length, targetUserName: targetUser.name }
+  return { updatedCount: input.enquiryIds.length, targetUserName }
 }
 
 /**

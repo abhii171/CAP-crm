@@ -177,6 +177,7 @@ export default function AdminEnquiriesPage() {
       }
 
       setShowAddModal(false)
+      const createdBranch = formData.branchId
       setFormData((prev) => ({
         ...prev,
         childName: '',
@@ -186,7 +187,11 @@ export default function AdminEnquiriesPage() {
         source: 'WALK_IN',
         notes: '',
       }))
-      await fetchEnquiries()
+      if (selectedBranchId !== 'all' && createdBranch && selectedBranchId !== createdBranch) {
+        setSelectedBranchId('all')
+      } else {
+        await fetchEnquiries()
+      }
     } catch (err: any) {
       setFormError(err.message)
     } finally {

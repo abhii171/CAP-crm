@@ -193,6 +193,7 @@ model User {
   p2EnquiriesAssigned Enquiry[]             @relation("EnquiryAssignedTo")
   p2EnquiriesCreated  Enquiry[]             @relation("EnquiryCreatedBy")
   p2StageChanges      EnquiryStageHistory[] @relation("StageHistoryChangedBy")
+  p2AssignmentHistories EnquiryAssignmentHistory[] @relation("AssignmentHistoryPerformedBy")
   p2FollowUpsDone     EnquiryFollowUp[]     @relation("FollowUpDoneBy")
   p2FollowUpsCreated  EnquiryFollowUp[]     @relation("FollowUpCreatedBy")
   p2ConsentsRecorded  EnquiryConsent[]      @relation("ConsentRecordedBy")
@@ -797,6 +798,7 @@ model Enquiry {
   mergedInto       Enquiry?              @relation("EnquiryMerge", fields: [mergedIntoId], references: [id])
   mergedFrom       Enquiry[]             @relation("EnquiryMerge")
   stageHistory     EnquiryStageHistory[]
+  assignmentHistory EnquiryAssignmentHistory[]
   followUps        EnquiryFollowUp[]
   consents         EnquiryConsent[]
   trials           TrialSession[]
@@ -824,6 +826,29 @@ model EnquiryStageHistory {
 
   @@index([enquiryId, createdAt])
   @@map("enquiry_stage_history")
+}
+
+model EnquiryAssignmentHistory {
+  id                String   @id @default(cuid())
+  enquiryId         String   @map("enquiry_id")
+  enquiryChildName  String   @map("enquiry_child_name")
+  branchId          String   @map("branch_id")
+  previousUserId    String?  @map("previous_user_id")
+  previousUserName  String?  @map("previous_user_name")
+  newUserId         String?  @map("new_user_id")
+  newUserName       String?  @map("new_user_name")
+  actionType        String   @map("action_type")
+  performedByUserId String   @map("performed_by_user_id")
+  performedByName   String   @map("performed_by_name")
+  note              String?
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  enquiry     Enquiry @relation(fields: [enquiryId], references: [id])
+  performedBy User    @relation("AssignmentHistoryPerformedBy", fields: [performedByUserId], references: [id])
+
+  @@index([enquiryId, createdAt])
+  @@index([branchId, createdAt])
+  @@map("enquiry_assignment_history")
 }
 
 model EnquiryFollowUp {

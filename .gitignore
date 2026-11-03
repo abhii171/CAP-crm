@@ -6,4 +6,5 @@ node_modules/
 prisma/migrations/*.sql.bak
 cookies.txt
 .backups/
+.demo-store/
 

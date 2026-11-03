@@ -104,9 +104,7 @@ export function updateDemoEnquiryStage(
   enquiryId: string,
   updates: Partial<EnquiryRecord>
 ): void {
-  if (demoEnquiries.length === 0) {
-    demoEnquiries = loadDemoData('enquiries', [])
-  }
+  demoEnquiries = loadDemoData<EnquiryRecord[]>('enquiries', [])
 
   const item = demoEnquiries.find((e) => e.id === enquiryId)
   if (item) {
@@ -158,6 +156,7 @@ export async function checkEnquiryDuplicates(
   }
 
   // Check demo enquiries buffer
+  demoEnquiries = loadDemoData<EnquiryRecord[]>('enquiries', [])
   for (const e of demoEnquiries) {
     if (e.phoneNormalized === normPhone && e.status !== 'CONVERTED') {
       if (!matches.some((m) => m.type === 'ENQUIRY' && m.id === e.id)) {
@@ -307,10 +306,53 @@ export async function createEnquiry(
   // 6. Database Write
   if (isDbAvailable()) {
     try {
+      // Validate foreign keys before inserting to prevent constraint violations
+      let validBranchId = enquiry.branchId
+      const branchExists = await prisma.branch.findUnique({
+        where: { id: enquiry.branchId },
+        select: { id: true },
+      })
+      if (!branchExists) {
+        const branchByCode = await prisma.branch.findUnique({
+          where: { code: enquiry.branchId },
+          select: { id: true },
+        })
+        if (branchByCode) {
+          validBranchId = branchByCode.id
+        }
+      }
+
+      let validAssignedToUserId: string | null = null
+      if (enquiry.assignedToUserId) {
+        const userExists = await prisma.user.findUnique({
+          where: { id: enquiry.assignedToUserId },
+          select: { id: true },
+        })
+        if (userExists) {
+          validAssignedToUserId = userExists.id
+        }
+      }
+
+      let validCreatedByUserId: string | null = null
+      if (enquiry.createdByUserId) {
+        const userExists = await prisma.user.findUnique({
+          where: { id: enquiry.createdByUserId },
+          select: { id: true },
+        })
+        if (userExists) {
+          validCreatedByUserId = userExists.id
+        }
+      }
+
+      const validDbSources: string[] = ['WALK_IN', 'PHONE', 'WEBSITE', 'REFERRAL', 'SOCIAL_MEDIA', 'OTHER']
+      const dbSource = validDbSources.includes(enquiry.source) ? (enquiry.source as any) : 'OTHER'
+      const validDbStatuses: string[] = ['NEW', 'CONTACTED', 'TRIAL_SCHEDULED', 'TRIAL_DONE', 'CONVERTED', 'LOST']
+      const dbStatus = validDbStatuses.includes(enquiry.status) ? (enquiry.status as any) : 'NEW'
+
       await prisma.enquiry.create({
         data: {
           id: enquiry.id,
-          branchId: enquiry.branchId,
+          branchId: validBranchId,
           childName: enquiry.childName,
           guardianName: enquiry.guardianName,
           phone: enquiry.phone,
@@ -318,49 +360,85 @@ export async function createEnquiry(
           email: enquiry.email,
           childAgeYears: enquiry.childAgeYears,
           interest: enquiry.interest,
-          source: enquiry.source,
+          source: dbSource,
           sourceDetail: enquiry.sourceDetail,
           createdVia: enquiry.createdVia,
-          status: enquiry.status,
-          assignedToUserId: enquiry.assignedToUserId,
+          status: dbStatus,
+          assignedToUserId: validAssignedToUserId,
           nextFollowUpAt: enquiry.nextFollowUpAt ? new Date(enquiry.nextFollowUpAt) : null,
           possibleDuplicate: enquiry.possibleDuplicate,
-          createdByUserId: enquiry.createdByUserId,
+          createdByUserId: validCreatedByUserId,
           version: enquiry.version,
         },
       })
 
       // Initial stage history
-      await prisma.enquiryStageHistory.create({
-        data: {
-          enquiryId: enquiry.id,
-          fromStatus: null,
-          toStatus: 'NEW',
-          changedByUserId: caller ? caller.userId : null,
-          note: isPublic ? 'Submitted via public website form' : 'Initial enquiry captured',
-        },
-      })
+      try {
+        await prisma.enquiryStageHistory.create({
+          data: {
+            enquiryId: enquiry.id,
+            fromStatus: null,
+            toStatus: dbStatus,
+            changedByUserId: validCreatedByUserId,
+            note: isPublic ? 'Submitted via public website form' : 'Initial enquiry captured',
+          },
+        })
+      } catch (historyErr) {
+        console.warn('Could not record stage history in DB:', historyErr)
+      }
 
       // Consent record if provided
       if (input.whatsappConsent) {
-        await prisma.enquiryConsent.create({
-          data: {
-            enquiryId: enquiry.id,
-            channel: 'WHATSAPP',
-            grantedAt: new Date(),
-            captureMethod: isPublic ? 'FORM_CHECKBOX' : 'STAFF_RECORDED',
-            textVersion: input.consentTextVersion || 'v1.0',
-            recordedByUserId: caller ? caller.userId : null,
-          },
-        })
+        try {
+          await prisma.enquiryConsent.create({
+            data: {
+              enquiryId: enquiry.id,
+              channel: 'WHATSAPP',
+              grantedAt: new Date(),
+              captureMethod: isPublic ? 'FORM_CHECKBOX' : 'STAFF_RECORDED',
+              textVersion: input.consentTextVersion || 'v1.0',
+              recordedByUserId: validCreatedByUserId,
+            },
+          })
+        } catch (consentErr) {
+          console.warn('Could not record consent in DB:', consentErr)
+        }
       }
-    } catch {
+    } catch (dbErr: any) {
+      console.error('Database write error during createEnquiry:', dbErr)
+      // When strictly in database mode, fail fast so frontend knows saving failed
+      if (process.env.DEMO_MODE !== 'true' && process.env.DEMO_MODE !== '1') {
+        throw new Error(`Failed to save enquiry in database: ${dbErr?.message || 'Database insert failed'}`)
+      }
       markDbOffline()
     }
   }
 
+  // Always sync with disk store
+  demoEnquiries = loadDemoData<EnquiryRecord[]>('enquiries', [])
   demoEnquiries.unshift(enquiry)
   saveDemoData('enquiries', demoEnquiries)
+
+  // Record initial assignment if assigned on creation
+  if (enquiry.assignedToUserId) {
+    const assignHist = loadDemoData<any[]>('enquiry-assign-history', [])
+    assignHist.unshift({
+      id: `asgn-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+      enquiryId: enquiry.id,
+      enquiryChildName: enquiry.childName,
+      branchId: enquiry.branchId,
+      previousUserId: null,
+      previousUserName: null,
+      newUserId: enquiry.assignedToUserId,
+      newUserName: null,
+      actionType: 'INITIAL_ASSIGNMENT',
+      performedByUserId: caller?.userId || 'system',
+      performedByName: caller?.userId || 'System',
+      note: isPublic ? 'Initial assignment via public form' : 'Initial assignment on lead creation',
+      createdAt: now,
+    })
+    saveDemoData('enquiry-assign-history', assignHist)
+  }
 
   // 7. Audit Log (No personal data in logs: A-10, A-15)
   await logAudit({
@@ -407,39 +485,47 @@ export async function listEnquiries(
       if (effectiveBranchId) where.branchId = effectiveBranchId
       if (filters?.status) where.status = filters.status
       if (filters?.assignedToUserId) where.assignedToUserId = filters.assignedToUserId
+      if (filters?.search) {
+        where.OR = [
+          { childName: { contains: filters.search, mode: 'insensitive' } },
+          { phone: { contains: filters.search } },
+          { guardianName: { contains: filters.search, mode: 'insensitive' } },
+        ]
+      }
 
       const records = await prisma.enquiry.findMany({
         where,
         orderBy: { createdAt: 'desc' },
       })
 
-      if (records.length > 0) {
-        return records.map((r) => ({
-          ...r,
-          nextFollowUpAt: r.nextFollowUpAt ? r.nextFollowUpAt.toISOString() : null,
-          lastContactedAt: r.lastContactedAt ? r.lastContactedAt.toISOString() : null,
-          convertedAt: r.convertedAt ? r.convertedAt.toISOString() : null,
-          anonymizedAt: r.anonymizedAt ? r.anonymizedAt.toISOString() : null,
-          createdAt: r.createdAt.toISOString(),
-          updatedAt: r.updatedAt.toISOString(),
-        }))
-      }
-    } catch {
+      return records.map((r) => ({
+        ...r,
+        nextFollowUpAt: r.nextFollowUpAt ? r.nextFollowUpAt.toISOString() : null,
+        lastContactedAt: r.lastContactedAt ? r.lastContactedAt.toISOString() : null,
+        convertedAt: r.convertedAt ? r.convertedAt.toISOString() : null,
+        anonymizedAt: r.anonymizedAt ? r.anonymizedAt.toISOString() : null,
+        createdAt: r.createdAt.toISOString(),
+        updatedAt: r.updatedAt.toISOString(),
+      }))
+    } catch (dbErr) {
+      console.error('Database listEnquiries error, falling back to demo store:', dbErr)
       markDbOffline()
     }
   }
 
-  // Filter demo store
-  if (demoEnquiries.length === 0) {
-    demoEnquiries = loadDemoData('enquiries', [])
-  }
+  // Always load fresh demo store from disk
+  demoEnquiries = loadDemoData<EnquiryRecord[]>('enquiries', [])
   return demoEnquiries.filter((e) => {
     if (effectiveBranchId && e.branchId !== effectiveBranchId) return false
     if (filters?.status && e.status !== filters.status) return false
     if (filters?.assignedToUserId && e.assignedToUserId !== filters.assignedToUserId) return false
     if (filters?.search) {
       const q = filters.search.toLowerCase()
-      return e.childName.toLowerCase().includes(q) || e.phone.includes(q)
+      return (
+        e.childName.toLowerCase().includes(q) ||
+        e.phone.includes(q) ||
+        (e.guardianName && e.guardianName.toLowerCase().includes(q))
+      )
     }
     return true
   })
@@ -476,10 +562,8 @@ export async function getEnquiryById(
     }
   }
 
-  if (demoEnquiries.length === 0) {
-    demoEnquiries = loadDemoData('enquiries', [])
-  }
-
+  // Always load fresh demo store from disk
+  demoEnquiries = loadDemoData<EnquiryRecord[]>('enquiries', [])
   const item = demoEnquiries.find((e) => e.id === enquiryId)
   if (!item) {
     throw new RecordNotFoundError('Enquiry')
@@ -487,4 +571,117 @@ export async function getEnquiryById(
 
   assertBranchAccess(caller, item.branchId, 'Enquiry')
   return item
+}
+
+export interface UpdateEnquiryInput {
+  childName?: string
+  guardianName?: string
+  phone?: string
+  email?: string
+  childAgeYears?: number
+  interest?: string
+  source?: EnquirySource
+  sourceDetail?: string
+  status?: EnquiryStatus
+  assignedToUserId?: string | null
+  notes?: string
+}
+
+/**
+ * Updates an enquiry's details with strict RBAC and branch access enforcement.
+ */
+export async function updateEnquiry(
+  caller: UserContext,
+  enquiryId: string,
+  input: UpdateEnquiryInput
+): Promise<EnquiryRecord> {
+  authorize(caller, 'enquiry:update')
+
+  const existing = await getEnquiryById(caller, enquiryId)
+  assertBranchAccess(caller, existing.branchId, 'Enquiry')
+
+  const now = new Date().toISOString()
+  const updates: Partial<EnquiryRecord> = {
+    updatedAt: now,
+    version: (existing.version || 1) + 1,
+  }
+
+  if (input.childName !== undefined) updates.childName = input.childName.trim()
+  if (input.guardianName !== undefined) updates.guardianName = input.guardianName?.trim() || null
+  if (input.phone !== undefined) {
+    updates.phone = input.phone.trim()
+    updates.phoneNormalized = normalizePhone(input.phone)
+  }
+  if (input.email !== undefined) updates.email = input.email?.trim() || null
+  if (input.childAgeYears !== undefined) updates.childAgeYears = input.childAgeYears
+  if (input.interest !== undefined) updates.interest = input.interest || null
+  if (input.source !== undefined) updates.source = input.source
+  if (input.sourceDetail !== undefined) updates.sourceDetail = input.sourceDetail || null
+  if (input.status !== undefined) updates.status = input.status
+  if (input.assignedToUserId !== undefined) updates.assignedToUserId = input.assignedToUserId || null
+
+  if (isDbAvailable()) {
+    try {
+      let validAssignedToUserId: string | null = null
+      if (updates.assignedToUserId) {
+        const userExists = await prisma.user.findUnique({
+          where: { id: updates.assignedToUserId },
+          select: { id: true },
+        })
+        if (userExists) {
+          validAssignedToUserId = userExists.id
+        }
+      }
+
+      await prisma.enquiry.update({
+        where: { id: enquiryId },
+        data: {
+          childName: updates.childName,
+          guardianName: updates.guardianName,
+          phone: updates.phone,
+          phoneNormalized: updates.phoneNormalized,
+          email: updates.email,
+          childAgeYears: updates.childAgeYears,
+          interest: updates.interest,
+          source: updates.source,
+          sourceDetail: updates.sourceDetail,
+          status: updates.status,
+          assignedToUserId: validAssignedToUserId,
+          version: updates.version,
+        },
+      })
+    } catch (dbErr: any) {
+      console.error('Failed to update enquiry in database:', dbErr)
+      if (process.env.DEMO_MODE !== 'true' && process.env.DEMO_MODE !== '1') {
+        throw new Error(`Database error while updating enquiry: ${dbErr?.message || 'Database update failed'}`)
+      }
+      markDbOffline()
+    }
+  }
+
+  // Always sync with disk demo store
+  demoEnquiries = loadDemoData<EnquiryRecord[]>('enquiries', [])
+  const index = demoEnquiries.findIndex((e) => e.id === enquiryId)
+  const updatedRecord = { ...existing, ...updates }
+  if (index !== -1) {
+    demoEnquiries[index] = updatedRecord
+  } else {
+    demoEnquiries.unshift(updatedRecord)
+  }
+  saveDemoData('enquiries', demoEnquiries)
+
+  await logAudit({
+    actorId: caller.userId,
+    branchId: existing.branchId,
+    action: 'p2.enquiry.update',
+    entityType: 'Enquiry',
+    entityId: enquiryId,
+    after: {
+      enquiryId,
+      updates,
+    },
+    reason: 'Enquiry details updated',
+  })
+
+  return updatedRecord
 }

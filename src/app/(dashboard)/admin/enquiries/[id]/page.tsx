@@ -19,6 +19,8 @@ import {
   X,
   Building2,
   FileText,
+  UserCog,
+  History,
 } from 'lucide-react'
 
 interface EnquiryDetail {
@@ -80,6 +82,26 @@ export default function AdminEnquiryRecordPage() {
   const [lostNote, setLostNote] = useState('')
   const [submittingLost, setSubmittingLost] = useState(false)
 
+  // Edit Enquiry modal
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editChildName, setEditChildName] = useState('')
+  const [editGuardianName, setEditGuardianName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editAge, setEditAge] = useState('')
+  const [editNotes, setEditNotes] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  // Reassign modal
+  const [showAssignModal, setShowAssignModal] = useState(false)
+  const [assignToUserId, setAssignToUserId] = useState('')
+  const [assignNote, setAssignNote] = useState('')
+  const [savingAssign, setSavingAssign] = useState(false)
+
+  // Assignment History modal
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [assignHistory, setAssignHistory] = useState<any[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
   const showToastMsg = (message: string, type: 'success' | 'error') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 4500)
@@ -92,7 +114,7 @@ export default function AdminEnquiryRecordPage() {
 
     try {
       const [enqRes, fuRes, staffRes, branchRes] = await Promise.all([
-        fetch('/api/enquiries'),
+        fetch(`/api/enquiries/${id}`),
         fetch(`/api/enquiries/${id}/follow-ups`),
         fetch('/api/users'),
         fetch('/api/branches'),
@@ -105,12 +127,27 @@ export default function AdminEnquiryRecordPage() {
         branchRes.json(),
       ])
 
-      if (enqData.success && Array.isArray(enqData.enquiries)) {
-        const found = enqData.enquiries.find((e: EnquiryDetail) => e.id === id)
+      if (enqData.success && enqData.enquiry) {
+        setEnquiry(enqData.enquiry)
+        setEditChildName(enqData.enquiry.childName || '')
+        setEditGuardianName(enqData.enquiry.guardianName || '')
+        setEditPhone(enqData.enquiry.phone || '')
+        setEditAge(enqData.enquiry.childAgeYears ? String(enqData.enquiry.childAgeYears) : '')
+        setEditNotes(enqData.enquiry.notes || '')
+      } else {
+        // Fallback to searching enquiry list
+        const listRes = await fetch('/api/enquiries')
+        const listData = await listRes.json()
+        const found = listData.enquiries?.find((e: EnquiryDetail) => e.id === id)
         if (found) {
           setEnquiry(found)
+          setEditChildName(found.childName || '')
+          setEditGuardianName(found.guardianName || '')
+          setEditPhone(found.phone || '')
+          setEditAge(found.childAgeYears ? String(found.childAgeYears) : '')
+          setEditNotes(found.notes || '')
         } else {
-          setError('Enquiry record not found.')
+          setError(enqData.error || 'Enquiry record not found.')
         }
       }
 
@@ -131,6 +168,72 @@ export default function AdminEnquiryRecordPage() {
       setLoading(false)
     }
   }, [id])
+
+  const handleSaveEdit = async () => {
+    if (!enquiry) return
+    setSavingEdit(true)
+    try {
+      const res = await fetch(`/api/enquiries/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          childName: editChildName.trim(),
+          guardianName: editGuardianName.trim() || undefined,
+          phone: editPhone.trim(),
+          childAgeYears: editAge ? parseInt(editAge) : undefined,
+          notes: editNotes.trim() || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update lead details')
+      }
+      setEnquiry(data.enquiry)
+      setShowEditModal(false)
+      showToastMsg('Lead details updated successfully', 'success')
+      await loadData()
+    } catch (err: any) {
+      showToastMsg(err.message || 'Error updating lead', 'error')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  const handleAssign = async () => {
+    if (!enquiry || !assignToUserId) return
+    setSavingAssign(true)
+    try {
+      const res = await fetch(`/api/enquiries/${id}/assign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newUserId: assignToUserId, note: assignNote.trim() || undefined }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to reassign')
+      setShowAssignModal(false)
+      setAssignNote('')
+      showToastMsg('Assignment updated successfully', 'success')
+      await loadData()
+    } catch (err: any) {
+      showToastMsg(err.message || 'Error updating assignment', 'error')
+    } finally {
+      setSavingAssign(false)
+    }
+  }
+
+  const handleLoadHistory = async () => {
+    setShowHistoryModal(true)
+    setLoadingHistory(true)
+    try {
+      const res = await fetch(`/api/enquiries/${id}/assign-history`)
+      const data = await res.json()
+      if (data.success) setAssignHistory(data.history || [])
+    } catch {
+      // silently fail - modal will show empty state
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
 
   useEffect(() => {
     loadData()
@@ -375,6 +478,27 @@ export default function AdminEnquiryRecordPage() {
 
                 {/* Top Action Buttons */}
                 <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="px-3 py-1.5 rounded-md border border-[var(--border)] text-xs font-medium hover:bg-[var(--surface-2)] text-[var(--text)] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                    <span>Edit Details</span>
+                  </button>
+                  <button
+                    onClick={() => { setAssignToUserId(enquiry.assignedToUserId || ''); setAssignNote(''); setShowAssignModal(true) }}
+                    className="px-3 py-1.5 rounded-md border border-[var(--border)] text-xs font-medium hover:bg-[var(--surface-2)] text-[var(--text)] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <UserCog className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                    <span>Edit Assignment</span>
+                  </button>
+                  <button
+                    onClick={handleLoadHistory}
+                    className="px-3 py-1.5 rounded-md border border-[var(--border)] text-xs font-medium hover:bg-[var(--surface-2)] text-[var(--text)] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <History className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                    <span>Assignment History</span>
+                  </button>
                   <button
                     onClick={() => setShowFollowUpModal(true)}
                     className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
@@ -774,6 +898,213 @@ export default function AdminEnquiryRecordPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Reassign Modal */}
+        {showAssignModal && (
+          <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+                <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
+                  <UserCog className="w-4 h-4 text-emerald-400" />
+                  Edit Assignment (Admin)
+                </h3>
+                <button onClick={() => setShowAssignModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-medium text-[var(--text-muted)] mb-1">Assign To *</label>
+                  <select
+                    value={assignToUserId}
+                    onChange={(e) => setAssignToUserId(e.target.value)}
+                    className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text)] focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="">— Select staff member —</option>
+                    {staffList.filter((s: any) => s.isActive !== false).map((s: any) => {
+                      const userBranch = branches.find((b) => b.id === s.branchId)?.name
+                      return (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.role || 'STAFF'}){userBranch ? ` - ${userBranch}` : ''}
+                        </option>
+                      )
+                    })}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--text-muted)] mb-1">Note (optional)</label>
+                  <textarea
+                    rows={2}
+                    value={assignNote}
+                    onChange={(e) => setAssignNote(e.target.value)}
+                    placeholder="Reason for reassignment..."
+                    className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text)] focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAssignModal(false)}
+                  className="px-3 py-1.5 rounded border border-[var(--border)] text-xs text-[var(--text-muted)] hover:bg-[var(--surface-2)] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAssign}
+                  disabled={savingAssign || !assignToUserId}
+                  className="px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
+                >
+                  {savingAssign ? 'Saving...' : 'Save Assignment'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Assignment History Modal */}
+        {showHistoryModal && (
+          <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
+            <div className="w-full max-w-lg bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 shadow-xl max-h-[80vh] flex flex-col space-y-4">
+              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 shrink-0">
+                <h3 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
+                  <History className="w-4 h-4 text-emerald-400" />
+                  Assignment History
+                </h3>
+                <button onClick={() => setShowHistoryModal(false)} className="text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="overflow-y-auto flex-1 space-y-3 pr-1">
+                {loadingHistory && (
+                  <p className="text-xs text-[var(--text-muted)] text-center py-8">Loading history...</p>
+                )}
+                {!loadingHistory && assignHistory.length === 0 && (
+                  <div className="text-center py-10 space-y-2">
+                    <History className="w-8 h-8 mx-auto text-[var(--text-muted)] opacity-40" />
+                    <p className="text-xs text-[var(--text-muted)]">No assignment history yet.</p>
+                  </div>
+                )}
+                {!loadingHistory && assignHistory.map((entry: any, idx: number) => (
+                  <div key={entry.id} className="relative pl-6">
+                    {idx < assignHistory.length - 1 && (
+                      <span className="absolute left-2 top-5 bottom-0 w-px bg-[var(--border)]" />
+                    )}
+                    <span className="absolute left-0 top-1.5 w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    </span>
+                    <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3 space-y-1 text-xs">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                          entry.actionType === 'INITIAL_ASSIGNMENT'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
+                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                        }`}>
+                          {entry.actionType === 'INITIAL_ASSIGNMENT' ? 'Initial Assignment' : 'Reassignment'}
+                        </span>
+                        <span className="text-[var(--text-muted)]">
+                          {new Date(entry.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-[var(--text)]">
+                        {entry.previousUserName
+                          ? <><span className="text-[var(--text-muted)]">{entry.previousUserName}</span>{' → '}</>
+                          : null}
+                        <span className="font-semibold text-emerald-400">{entry.newUserName || '—'}</span>
+                      </p>
+                      <p className="text-[var(--text-muted)]">by <span className="text-[var(--text)]">{entry.performedByName}</span></p>
+                      {entry.note && <p className="text-[var(--text-muted)] italic">"{entry.note}"</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Enquiry Modal */}
+        {showEditModal && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl max-w-md w-full p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-[var(--text)]">Edit Lead Information</h3>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-medium text-[var(--text-muted)] mb-1">Child Name</label>
+                  <input
+                    type="text"
+                    value={editChildName}
+                    onChange={(e) => setEditChildName(e.target.value)}
+                    className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text)]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--text-muted)] mb-1">Guardian Name</label>
+                  <input
+                    type="text"
+                    value={editGuardianName}
+                    onChange={(e) => setEditGuardianName(e.target.value)}
+                    className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text)]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--text-muted)] mb-1">Phone</label>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text)] font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--text-muted)] mb-1">Age (Years)</label>
+                  <input
+                    type="number"
+                    value={editAge}
+                    onChange={(e) => setEditAge(e.target.value)}
+                    className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text)]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-medium text-[var(--text-muted)] mb-1">Notes</label>
+                  <textarea
+                    rows={2}
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded px-3 py-2 text-[var(--text)]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-3 py-1.5 rounded border border-[var(--border)] text-xs text-[var(--text-muted)] hover:bg-[var(--surface-2)] cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveEdit}
+                  disabled={savingEdit}
+                  className="px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
+                >
+                  {savingEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
             </div>
           </div>
         )}
