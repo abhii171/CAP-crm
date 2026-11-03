@@ -136,8 +136,43 @@ body {
   overflow-x: hidden;
   background-color: var(--bg);
   color: var(--text);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+  caret-color: var(--primary-600);
+}
+
+/* Browser surface polish — themed selection */
+::selection {
+  background-color: var(--primary-100);
+  color: var(--primary-700);
+}
+
+@media (prefers-color-scheme: dark) {
+  ::selection {
+    background-color: var(--primary-700);
+    color: #ECEFEA;
+  }
+}
+
+/* Custom sleek scrollbar matching design system tokens */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 img,

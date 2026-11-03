@@ -471,7 +471,7 @@ export function EnquiryListView({
                         </Link>
                       </td>
                       <td className="py-2.5 px-3 text-[var(--text-muted)]">
-                        <div className="flex items-center gap-1.5 font-mono">
+                        <div className="flex items-center gap-1.5 font-mono tabular-nums">
                           <Phone className="w-3 h-3 shrink-0 opacity-70" />
                           <span>{enquiry.phone}</span>
                         </div>
@@ -507,7 +507,7 @@ export function EnquiryListView({
                       <td className="py-2.5 px-3">
                         {enquiry.nextFollowUpAt ? (
                           <div
-                            className={`flex items-center gap-1.5 ${
+                            className={`flex items-center gap-1.5 tabular-nums ${
                               isOverdue ? 'text-rose-400 font-semibold' : 'text-[var(--text-muted)]'
                             }`}
                           >
@@ -528,7 +528,7 @@ export function EnquiryListView({
                           <span className="text-[var(--text-muted)] italic">—</span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 text-[var(--text-muted)]">
+                      <td className="py-2.5 px-3 text-[var(--text-muted)] tabular-nums">
                         {new Date(enquiry.createdAt).toLocaleDateString('en-IN', {
                           day: '2-digit',
                           month: 'short',
@@ -639,8 +639,8 @@ export function EnquiryListView({
 
       {/* Change Owner Modal */}
       {showReassignModal && (
-        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 transition-all">
+          <div className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5 sm:p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <h3 className="text-sm font-semibold text-[var(--text)]">
                 Change Owner ({selectedIds.length} leads)
