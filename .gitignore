@@ -7,6 +7,9 @@
 *.key
 cookies.txt
 
+# Documentation
+docs/
+
 # Local/demo data
 .demo-store/
 prisma/*.db
